@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 
 // The tool is a static page served in an iframe, so the test loads the real file
 // and runs its own script rather than re-implementing the math here.
 const html = readFileSync(
-  fileURLToPath(new URL("../../public/budget.html", import.meta.url)),
+  path.resolve(process.cwd(), "public/budget.html"),
   "utf8",
 );
 

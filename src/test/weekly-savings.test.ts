@@ -29,7 +29,7 @@ function viewOf(doc: Document) {
 function typeBillAmount(doc: Document, amount: string) {
   const amt = doc.getElementById("tplAmt") as HTMLInputElement;
   amt.value = amount;
-  amt.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
+  amt.dispatchEvent(new viewOf(doc).Event("input", { bubbles: true }));
 }
 
 function addBill(doc: Document, name: string, amount: string, day: string) {
@@ -38,7 +38,7 @@ function addBill(doc: Document, name: string, amount: string, day: string) {
   (doc.getElementById("tplDay") as HTMLSelectElement).value = day;
   doc
     .getElementById("templateForm")!
-    .dispatchEvent(new doc.defaultView.Event("submit", { bubbles: true, cancelable: true }));
+    .dispatchEvent(new viewOf(doc).Event("submit", { bubbles: true, cancelable: true }));
 }
 
 describe("Weekly savings for bills (monthly ÷ 4)", () => {

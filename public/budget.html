@@ -531,7 +531,7 @@
 
   /* Delegated actions */
   document.addEventListener("click", function(e){
-    var b = e.target.closest("[data-action]"); if(!b) return;
+    var b = e.target.closest("[data-action]"); if(!b || b.tagName==="INPUT") return;
     var action = b.getAttribute("data-action"), id = b.getAttribute("data-id");
     if(action==="del-income"){
       state.incomes = state.incomes.filter(function(x){ return x.id!==id; });

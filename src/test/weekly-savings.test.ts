@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { JSDOM } from "jsdom";
+import { JSDOM, type DOMWindow } from "jsdom";
 import { describe, expect, it } from "vitest";
 
 // The tool is a static page served in an iframe, so the test loads the real file
@@ -15,30 +15,28 @@ function openTool() {
     url: "http://localhost/",
     runScripts: "dangerously",
     pretendToBeVisual: true,
-    beforeParse(window: { scrollTo: unknown }) {
+    beforeParse(window: DOMWindow) {
       window.scrollTo = () => {};
     },
   });
-  return dom.window.document as Document;
+  return dom.window.document;
 }
 
-function viewOf(doc: Document) {
-  return doc.defaultView!;
+function fire(doc: Document, node: Element, type: string) {
+  node.dispatchEvent(new (doc.defaultView as unknown as Window).Event(type, { bubbles: true }));
 }
 
 function typeBillAmount(doc: Document, amount: string) {
   const amt = doc.getElementById("tplAmt") as HTMLInputElement;
   amt.value = amount;
-  amt.dispatchEvent(new viewOf(doc).Event("input", { bubbles: true }));
+  fire(doc, amt, "input");
 }
 
 function addBill(doc: Document, name: string, amount: string, day: string) {
   (doc.getElementById("tplName") as HTMLInputElement).value = name;
   typeBillAmount(doc, amount);
   (doc.getElementById("tplDay") as HTMLSelectElement).value = day;
-  doc
-    .getElementById("templateForm")!
-    .dispatchEvent(new viewOf(doc).Event("submit", { bubbles: true, cancelable: true }));
+  fire(doc, doc.getElementById("templateForm")!, "submit");
 }
 
 describe("Weekly savings for bills (monthly ÷ 4)", () => {
@@ -70,8 +68,7 @@ describe("Weekly savings for bills (monthly ÷ 4)", () => {
     addBill(doc, "Rent", "240", "1");
     addBill(doc, "Phone", "100", "15");
 
-    const wkBox = doc.getElementById("wkBox")!;
-    expect(wkBox.hasAttribute("hidden")).toBe(false);
+    expect(doc.getElementById("wkBox")!.hasAttribute("hidden")).toBe(false);
     expect(doc.getElementById("wkTotal")!.textContent).toContain("$85");
     expect(doc.getElementById("billsTotalLine")!.textContent).toContain("save $85 a week");
   });

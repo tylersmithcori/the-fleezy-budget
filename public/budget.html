@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="TSC Budgeting Tool by TylerSmithCo — a simple, basic way to watch and manage your own money. Set bills once, they repeat every month. Bank linking coming later for Premium." />
+<link rel="icon" href="data:," />
+<title>TSC Budgeting Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f2f4f7;
+    --surface:#ffffff;
+    --surface-2:#eef1f6;
+    --ink:#101828;
+    --ink-2:#344054;
+    --muted:#667085;
+    --line:#d9dfe9;
+    --cobalt:#0b4fd1;
+    --cobalt-dark:#083a9c;
+    --cobalt-soft:#e6eefc;
+    --green:#067647;
+    --green-soft:#e6f4ea;
+    --amber:#b54708;
+    --amber-soft:#fef3e2;
+    --red:#b42318;
+    --red-soft:#fef3f2;
+    --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+    --radius:12px;
+    --radius-sm:8px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0c1220;
+      --surface:#131c30;
+      --surface-2:#1a2742;
+      --ink:#f2f4f7;
+      --ink-2:#d0d5dd;
+      --muted:#98a2b3;
+      --line:#263354;
+      --cobalt:#5b8def;
+      --cobalt-dark:#8db0f5;
+      --cobalt-soft:#1c2f57;
+      --green:#32d583;
+      --green-soft:#123527;
+      --amber:#fdb022;
+      --amber-soft:#3a2a0a;
+      --red:#f97066;
+      --red-soft:#3d1a16;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{ -webkit-text-size-adjust:100% }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Public Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+    font-size:16px; line-height:1.5;
+  }
+  .wrap{ max-width:980px; margin:0 auto; padding:20px 16px 64px; }
+  @media(min-width:720px){ .wrap{ padding:32px 24px 80px } }
+
+  /* Intro */
+  .intro{ display:flex; gap:16px; align-items:flex-start; margin-bottom:18px; }
+  .mark{
+    flex:0 0 auto; width:46px; height:46px; background:var(--cobalt);
+    transform:rotate(45deg); border-radius:9px; display:grid; place-items:center; margin-top:4px;
+  }
+  .mark span{ transform:rotate(-45deg); color:#fff; font-family:"Archivo",sans-serif; font-weight:800; font-size:13px; letter-spacing:.02em; }
+  .mark span b{ color:#101828; }
+  @media (prefers-color-scheme: dark){ .mark span b{ color:#0c1220 } }
+  .intro h1{ font-family:"Archivo",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.02em; margin:0 0 6px; font-weight:800; }
+  @media(min-width:720px){ .intro h1{ font-size:36px } }
+  .intro p{ margin:0; color:var(--ink-2); max-width:62ch; font-size:15.5px; }
+  .intro p strong{ color:var(--ink); }
+  .pills{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .pill{ font-size:12.5px; font-weight:600; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink-2); }
+  .pill.blue{ background:var(--cobalt-soft); border-color:transparent; color:var(--cobalt-dark); }
+  @media (prefers-color-scheme: dark){ .pill.blue{ color:#c7d9fb } }
+
+  /* Tabs */
+  .tabs{ display:flex; flex-wrap:wrap; gap:6px; background:var(--surface); border:1px solid var(--line); padding:5px; border-radius:10px; box-shadow:var(--shadow); margin:18px 0 18px; }
+  .tab{
+    flex:1 1 30%; min-width:0; appearance:none; border:0; background:transparent; color:var(--muted);
+    font:inherit; font-weight:700; font-size:14px; padding:10px 6px; border-radius:7px; cursor:pointer; white-space:normal; text-align:center; line-height:1.25;
+  }
+  @media(max-width:480px){ .tab{ font-size:13px; padding:10px 4px; } }
+  .tab[aria-selected="true"]{ background:var(--cobalt); color:#fff; }
+  .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible{ outline:3px solid var(--cobalt); outline-offset:2px; }
+
+  /* Month bar */
+  .monthbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow); margin-bottom:14px;
+  }
+  .monthbar h2{ margin:0; font-family:"Archivo",sans-serif; font-size:19px; letter-spacing:-.01em; }
+  .monthbar p{ margin:1px 0 0; font-size:13px; color:var(--muted); }
+  .mnav{ display:flex; gap:8px; }
+  .iconbtn{
+    width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:8px; cursor:pointer; font-size:18px; line-height:1;
+  }
+
+  /* Summary */
+  .summary{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  @media(min-width:720px){ .summary{ grid-template-columns:repeat(4,1fr); gap:12px } }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); }
+  .stat label{ display:block; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .stat .num{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:22px; font-weight:600; letter-spacing:-.02em; }
+  @media(min-width:720px){ .stat .num{ font-size:24px } }
+  .stat .sub{ font-size:12.5px; color:var(--muted); margin-top:3px; }
+  .stat.good .num{ color:var(--green); }
+  .stat.bad .num{ color:var(--red); }
+
+  /* Cards / sections */
+  .grid{ display:grid; gap:14px; }
+  @media(min-width:860px){ .grid.two{ grid-template-columns:1fr 1fr; align-items:start; } }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .card-head{ padding:16px 16px 10px; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .card-head h3{ margin:0; font-family:"Archivo",sans-serif; font-size:17px; letter-spacing:-.01em; }
+  .card-head p{ margin:3px 0 0; font-size:13.5px; color:var(--muted); }
+  .badge{ flex:0 0 auto; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:5px 8px; border-radius:999px; background:var(--surface-2); color:var(--ink-2); }
+  .badge.primary{ background:var(--cobalt-soft); color:var(--cobalt-dark); }
+  @media (prefers-color-scheme: dark){ .badge.primary{ color:#c7d9fb } }
+  .list{ list-style:none; margin:0; padding:4px 10px 10px; }
+  .row{
+    display:flex; align-items:center; gap:10px; padding:11px 6px; border-top:1px solid var(--line);
+  }
+  .row:first-child{ border-top:0; }
+  .row-main{ flex:1; min-width:0; }
+  .row-name{ font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row-meta{ font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .amt{ font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:15px; white-space:nowrap; }
+  .due{ font-size:11.5px; font-weight:700; padding:4px 7px; border-radius:999px; background:var(--surface-2); color:var(--ink-2); white-space:nowrap; }
+  .due.soon{ background:var(--amber-soft); color:var(--amber); }
+  .due.overdue{ background:var(--red-soft); color:var(--red); }
+  .due.paid{ background:var(--green-soft); color:var(--green); }
+  .smallbtn{
+    appearance:none; border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+    font:inherit; font-size:13px; font-weight:600; padding:7px 10px; border-radius:7px; cursor:pointer; white-space:nowrap;
+  }
+  .smallbtn.paidbtn{ border-color:transparent; background:var(--surface-2); }
+  .smallbtn.paidbtn.is-paid{ background:var(--green); color:#fff; border-color:transparent; }
+  .smallbtn.danger{ color:var(--red); }
+  .empty{ padding:14px 16px 18px; color:var(--muted); font-size:14px; }
+  .empty strong{ color:var(--ink); display:block; font-size:15px; margin-bottom:2px; }
+
+  /* Forms */
+  .form{ border-top:1px solid var(--line); padding:14px 16px 16px; background:color-mix(in srgb, var(--surface) 92%, var(--surface-2)); display:grid; gap:9px; }
+  .form .frow{ display:grid; grid-template-columns:1fr 110px; gap:9px; }
+  .form .frow3{ display:grid; grid-template-columns:1fr 138px 110px; gap:9px; }
+  @media(max-width:560px){ .form .frow3{ grid-template-columns:1fr 1fr; } .form .frow3 .full{ grid-column:1/-1; } }
+  label.f{ display:grid; gap:5px; font-size:12.5px; font-weight:600; color:var(--ink-2); }
+  input, select{
+    width:100%; font:inherit; font-size:15px; color:var(--ink); background:var(--surface);
+    border:1px solid var(--line); border-radius:8px; padding:10px 11px; min-height:44px;
+  }
+  input::placeholder{ color:var(--muted); }
+  .btn{
+    appearance:none; border:0; background:var(--cobalt); color:#fff; font:inherit; font-weight:700; font-size:15px;
+    padding:12px 16px; border-radius:8px; cursor:pointer; min-height:46px; width:100%;
+  }
+  .btn:active{ background:var(--cobalt-dark); }
+  .btn.secondary{ background:var(--surface); color:var(--ink); border:1px solid var(--line); }
+  .hint{ font-size:12.5px; color:var(--muted); margin:0; }
+
+  /* Savings callout */
+  .savebox{ margin:0 16px 16px; border:1px solid var(--line); border-left:4px solid var(--cobalt); background:var(--cobalt-soft); border-radius:8px; padding:13px 14px; }
+  .savebox h4{ margin:0 0 4px; font-size:14px; font-family:"Archivo",sans-serif; }
+  .savebox p{ margin:0; font-size:13.5px; color:var(--ink-2); }
+  .savebox .big{ font-family:"IBM Plex Mono",monospace; font-weight:600; color:var(--ink); }
+  .range-row{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .range-row input[type="range"]{ padding:0; min-height:auto; accent-color:var(--cobalt); }
+  .range-row output{ font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:600; white-space:nowrap; }
+
+  /* Learn */
+  .learn-intro{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .learn-intro h2{ margin:0 0 6px; font-family:"Archivo",sans-serif; font-size:22px; letter-spacing:-.01em; }
+  .learn-intro p{ margin:0; color:var(--ink-2); font-size:15px; max-width:65ch; }
+  details.lesson{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  details.lesson + details.lesson{ margin-top:10px; }
+  details.lesson summary{ cursor:pointer; list-style:none; padding:16px; display:flex; justify-content:space-between; gap:12px; align-items:center; font-family:"Archivo",sans-serif; font-weight:700; font-size:16px; }
+  details.lesson summary::-webkit-details-marker{ display:none; }
+  details.lesson summary .n{ font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--cobalt); font-weight:600; display:block; margin-bottom:2px; letter-spacing:.05em; }
+  details.lesson .body{ padding:0 16px 16px; color:var(--ink-2); font-size:15px; }
+  details.lesson .body p{ margin:0 0 9px; }
+  details.lesson .body p:last-child{ margin-bottom:0; }
+  .src{ font-size:13px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+  .src a{ color:var(--cobalt); font-weight:600; }
+  .chev{ color:var(--muted); font-size:20px; line-height:1; transition:transform .15s ease; }
+  details[open ] .chev{ transform:rotate(90deg); }
+  .watch{ display:grid; gap:10px; }
+  @media(min-width:720px){ .watch{ grid-template-columns:1fr 1fr; } }
+  .watch a{
+    display:block; text-decoration:none; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);
+  }
+  .watch a span{ display:block; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--cobalt); margin-bottom:5px; }
+  .watch a strong{ display:block; font-family:"Archivo",sans-serif; font-size:16px; margin-bottom:4px; }
+  .watch a p{ margin:0; font-size:13.5px; color:var(--muted); }
+  .section-title{ font-family:"Archivo",sans-serif; font-size:19px; margin:22px 0 10px; letter-spacing:-.01em; }
+  .section-sub{ color:var(--muted); font-size:14px; margin:-6px 0 12px; }
+
+  /* Plans */
+  .plans{ display:grid; gap:10px; }
+  @media(min-width:720px){ .plans{ grid-template-columns:repeat(3,1fr); } }
+  .plan{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; }
+  .plan.featured{ border-color:var(--cobalt); border-width:2px; }
+  .plan h3{ margin:0; font-family:"Archivo",sans-serif; font-size:17px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .price{ font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:600; }
+  .price small{ font-size:13px; color:var(--muted); font-family:"Public Sans",sans-serif; font-weight:500; }
+  .plan ul{ margin:2px 0 0; padding-left:18px; color:var(--ink-2); font-size:14px; display:grid; gap:5px; }
+  .tag{ font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; background:var(--amber-soft); color:var(--amber); padding:4px 7px; border-radius:999px; white-space:nowrap; }
+  .tag.now{ background:var(--green-soft); color:var(--green); }
+  .notebox{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); }
+  .notebox h3{ margin:0 0 6px; font-family:"Archivo",sans-serif; font-size:16px; }
+  .notebox p{ margin:0 0 8px; color:var(--ink-2); font-size:14.5px; }
+  .notebox p:last-child{ margin-bottom:0; }
+
+  footer{ margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; display:grid; gap:6px; }
+  footer a{ color:var(--cobalt); }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="intro">
+    <div class="mark" aria-hidden="true"><span>T<b>S</b>C</span></div>
+    <div>
+      <h1>Watch your money.<br>Keep it simple.</h1>
+      <p>A basic budgeting tool from <strong>TylerSmithCo</strong>. Add your income and your bills once — bills repeat every month with their due day already set. Your money stays in <strong>your own bank account</strong>. This tool never holds or moves it.</p>
+      <div class="pills" aria-label="How this version works">
+        <span class="pill blue">Web version — simple &amp; basic</span>
+        <span class="pill">No bank login needed</span>
+        <span class="pill">Bills set once, repeat monthly</span>
+        <span class="pill">Bank linking: Premium, coming later</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Tool sections">
+    <button class="tab" role="tab" id="tab-budget" aria-selected="true" aria-controls="view-budget" data-view="budget">My budget</button>
+    <button class="tab" role="tab" id="tab-bills" aria-selected="false" aria-controls="view-bills" data-view="bills">Monthly bills</button>
+    <button class="tab" role="tab" id="tab-learn" aria-selected="false" aria-controls="view-learn" data-view="learn">Learn money basics</button>
+  </nav>
+
+  <!-- ============ MY BUDGET ============ -->
+  <section id="view-budget" role="tabpanel" aria-labelledby="tab-budget">
+    <div class="monthbar">
+      <div>
+        <h2 id="monthLabel">This month</h2>
+        <p id="monthSub">Bills below already carry their due days.</p>
+      </div>
+      <div class="mnav">
+        <button class="iconbtn" id="prevMonth" aria-label="Previous month">‹</button>
+        <button class="iconbtn" id="nextMonth" aria-label="Next month">›</button>
+      </div>
+    </div>
+
+    <div class="summary" aria-label="Month summary">
+      <div class="stat"><label>Income</label><div class="num" id="statIncome">$0</div><div class="sub" id="statIncomeSub">Add income below</div></div>
+      <div class="stat"><label>Bills due</label><div class="num" id="statBills">$0</div><div class="sub" id="statBillsSub">—</div></div>
+      <div class="stat"><label>Other spending</label><div class="num" id="statSpend">$0</div><div class="sub">What you add by hand</div></div>
+      <div class="stat" id="statLeftCard"><label>Left after bills &amp; spending</label><div class="num" id="statLeft">$0</div><div class="sub" id="statLeftSub">Income minus bills &amp; spending</div></div>
+    </div>
+
+    <div class="grid two">
+      <!-- Income -->
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Income</h3><p>Your first income is your Primary. Everything after that is Secondary.</p></div>
+          <span class="badge">1 Primary only</span>
+        </div>
+        <ul class="list" id="incomeList"></ul>
+        <div class="empty" id="incomeEmpty"><strong>No income yet</strong>Add the money you bring in each month. The first one you add becomes Primary.</div>
+        <div class="savebox" id="saveBox" hidden>
+          <h4>Pay yourself first — from Primary</h4>
+          <p id="saveText">Set a percent of your Primary income to set aside.</p>
+          <div class="range-row">
+            <input type="range" id="savePct" min="0" max="30" step="1" value="10" aria-label="Percent of Primary income to set aside">
+            <output id="savePctOut">10%</output>
+          </div>
+        </div>
+        <form class="form" id="incomeForm">
+          <div class="frow">
+            <label class="f">Name<input id="incName" type="text" placeholder="e.g. Main job" autocomplete="off" required></label>
+            <label class="f">Per month $<input id="incAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+          </div>
+          <button class="btn" type="submit">Add income</button>
+          <p class="hint">Use your usual monthly take-home, after tax, if you can.</p>
+        </form>
+      </div>
+
+      <!-- Bills this month -->
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Bills due this month</h3><p>These come from your Monthly bills list — set them once, they show up here every month.</p></div>
+          <span class="badge primary">Auto-repeat</span>
+        </div>
+        <ul class="list" id="billMonthList"></ul>
+        <div class="empty" id="billMonthEmpty"><strong>No monthly bills yet</strong>Go to the “Monthly bills” tab and set a bill once — its due day will stick for every month after.</div>
+        <div style="padding:0 16px 16px">
+          <button class="btn secondary" type="button" id="goBillsBtn">Set up monthly bills →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spending -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-head">
+        <div><h3>Other spending this month</h3><p>Groceries, gas, eating out — anything that is not a set monthly bill.</p></div>
+      </div>
+      <ul class="list" id="expenseList"></ul>
+      <div class="empty" id="expenseEmpty"><strong>Nothing added yet</strong>When you spend, add it here so the “left” number at the top stays honest.</div>
+      <form class="form" id="expenseForm">
+        <div class="frow3">
+          <label class="f full">What was it?<input id="expName" type="text" placeholder="e.g. Groceries" autocomplete="off" required></label>
+          <label class="f">Category
+            <select id="expCat">
+              <option>Groceries</option><option>Transport</option><option>Food out</option><option>Household</option><option>Fun</option><option>Other</option>
+            </select>
+          </label>
+          <label class="f">Amount $<input id="expAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+        </div>
+        <button class="btn" type="submit">Add spending</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ MONTHLY BILLS ============ -->
+  <section id="view-bills" role="tabpanel" aria-labelledby="tab-bills" hidden>
+    <div class="learn-intro">
+      <h2>Set a bill once. It repeats every month.</h2>
+      <p>This is your master list. Put in the bill name, the usual amount, and the day of the month it is due. From then on it appears in every month automatically — you do not have to type the due date again. Change it here and it changes going forward.</p>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Your monthly bills</h3><p id="billsTotalLine">No bills yet.</p></div>
+      </div>
+      <ul class="list" id="templateList"></ul>
+      <div class="empty" id="templateEmpty"><strong>No monthly bills yet</strong>Rent, phone, electric, car insurance — add each one once below.</div>
+      <form class="form" id="templateForm">
+        <div class="frow3">
+          <label class="f full">Bill name<input id="tplName" type="text" placeholder="e.g. Rent" autocomplete="off" required></label>
+          <label class="f">Due day
+            <select id="tplDay"></select>
+          </label>
+          <label class="f">Amount $<input id="tplAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+        </div>
+        <button class="btn" type="submit">Add monthly bill — repeats every month</button>
+        <p class="hint">If a bill is due on the 31st, in shorter months it will show on that month’s last day.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ LEARN ============ -->
+  <section id="view-learn" role="tabpanel" aria-labelledby="tab-learn" hidden>
+    <div class="learn-intro">
+      <h2>Learn money basics</h2>
+      <p>Short, plain-language lessons built from trusted sources — the Consumer Financial Protection Bureau (CFPB), FDIC Money Smart, Khan Academy, NerdWallet, and Bank of America’s Better Money Habits (bank-provided education). General education only, not personal financial advice.</p>
+    </div>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 01</span>Start with what actually comes in</span><span class="chev">›</span></summary>
+      <div class="body"><p>A budget only works off real numbers. Write down your take-home pay — what actually lands in your account — not the salary number before tax.</p><p>In this tool, that is your <strong>Primary</strong> income. Add any second income as Secondary so you can see which money your bills depend on.</p><div class="src">Source: <a href="https://www.consumerfinance.gov/consumer-tools/budgeting/" target="_blank" rel="noopener">CFPB — Budgeting tools</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 02</span>Give every dollar a job</span><span class="chev">›</span></summary>
+      <div class="body"><p>Before the month starts, decide where the money goes: bills first, then needs, then wants, then savings. When every dollar has a job, money stops “disappearing.”</p><p>The number at the top of My budget — <strong>Left after bills &amp; spending</strong> — is the dollars that do not have a job yet.</p><div class="src">Source: <a href="https://www.nerdwallet.com/article/finance/how-to-budget" target="_blank" rel="noopener">NerdWallet — How to budget</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 03</span>The 50 / 30 / 20 guide</span><span class="chev">›</span></summary>
+      <div class="body"><p>A simple guide, not a rule: about 50% of take-home for needs (rent, bills, groceries), 30% for wants, and 20% for savings and extra debt payments.</p><p>If your numbers do not fit yet, that is normal — especially with high rent. Use it as a direction to move toward, not a grade.</p><div class="src">Source: <a href="https://www.nerdwallet.com/article/finance/how-to-budget" target="_blank" rel="noopener">NerdWallet — 50/30/20 budget</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 04</span>Pay yourself first</span><span class="chev">›</span></summary>
+      <div class="body"><p>Move a set amount to savings as soon as you get paid — before spending starts. Even a small amount counts. Waiting to save “whatever is left” usually means nothing is left.</p><p>The slider in the Income box works this out from your Primary income, per month and per week.</p><div class="src">Sources: <a href="https://www.khanacademy.org/college-careers-more/personal-finance" target="_blank" rel="noopener">Khan Academy — Personal finance</a> · <a href="https://bettermoneyhabits.bankofamerica.com/en" target="_blank" rel="noopener">Better Money Habits</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 05</span>Due days are the whole game</span><span class="chev">›</span></summary>
+      <div class="body"><p>Most late fees do not happen because there was no money — they happen because the due day and payday did not line up. Knowing every bill’s due day lets you see a tight week before it hits.</p><p>That is why bills in this tool are set once in <strong>Monthly bills</strong> and repeat: the due day is always in front of you.</p><div class="src">Source: <a href="https://www.consumerfinance.gov/consumer-tools/budgeting/" target="_blank" rel="noopener">CFPB — Budgeting</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 06</span>Build a small emergency cushion</span><span class="chev">›</span></summary>
+      <div class="body"><p>Start with a small first goal — $500, then $1,000 — in a separate savings account at your own bank. It turns a flat tire or a cut shift from a crisis into an inconvenience, and keeps it off a credit card.</p><div class="src">Sources: <a href="https://www.fdic.gov/resources/consumers/money-smart/index.html" target="_blank" rel="noopener">FDIC Money Smart</a> · <a href="https://bettermoneyhabits.bankofamerica.com/en" target="_blank" rel="noopener">Better Money Habits</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 07</span>Two ways to pay off debt</span><span class="chev">›</span></summary>
+      <div class="body"><p><strong>Snowball:</strong> pay the smallest balance first for quick wins, minimums on the rest. <strong>Avalanche:</strong> pay the highest interest rate first — costs less in total. Both work. The best one is the one you will stick with.</p><p>Always pay at least the minimum on every debt so due days do not hurt your credit.</p><div class="src">Source: <a href="https://www.consumerfinance.gov/consumer-tools/budgeting/" target="_blank" rel="noopener">CFPB — Debt and budgeting resources</a></div></div></details>
+
+    <details class="lesson"><summary><span><span class="n">LESSON 08</span>The 10-minute weekly check-in</span><span class="chev">›</span></summary>
+      <div class="body"><p>Once a week, for ten minutes: check your bank balance, look at what is due before your next payday, and add any spending you missed. Small, regular check-ins beat one big stressful catch-up.</p><div class="src">Source: <a href="https://www.fdic.gov/resources/consumers/money-smart/index.html" target="_blank" rel="noopener">FDIC Money Smart</a></div></div></details>
+
+    <h3 class="section-title">Watch &amp; learn</h3>
+    <p class="section-sub">Free lessons from the same trusted sources. These open on their own sites.</p>
+    <div class="watch">
+      <a href="https://www.khanacademy.org/college-careers-more/personal-finance" target="_blank" rel="noopener"><span>Khan Academy · Free course</span><strong>Personal finance, step by step</strong><p>Includes “Paying yourself first” and budgeting basics, in short videos with practice.</p></a>
+      <a href="https://www.youtube.com/@TwoCentsPBS" target="_blank" rel="noopener"><span>YouTube · PBS Two Cents</span><strong>Budgeting Basics! and more</strong><p>Short, plain-language money videos from PBS’s Two Cents channel on YouTube.</p></a>
+      <a href="https://bettermoneyhabits.bankofamerica.com/en" target="_blank" rel="noopener"><span>Bank of America · Better Money Habits</span><strong>Budgeting, saving &amp; credit videos</strong><p>Bank-provided education — videos live on Bank of America’s own site, not YouTube.</p></a>
+      <a href="https://www.fdic.gov/resources/consumers/money-smart/index.html" target="_blank" rel="noopener"><span>FDIC · Money Smart</span><strong>Free financial education program</strong><p>The FDIC’s Money Smart lessons on banking, budgeting, and borrowing basics.</p></a>
+    </div>
+  </section>
+
+  <!-- ============ PLANS / WHAT'S NEXT ============ -->
+  <h3 class="section-title">Plans — kept basic and affordable on purpose</h3>
+  <p class="section-sub">Why we charge at all: the point is to help people with money. There are very few truly free budgeting apps. This one stays basic and affordable on purpose, and the paid tiers are priced just high enough to fund the workshops.</p>
+  <div class="plans">
+    <div class="plan">
+      <h3>Free <span class="tag now">Live now</span></h3>
+      <div class="price">$0</div>
+      <ul>
+        <li>Full budget on this page — income, bills, spending</li>
+        <li>Monthly bills set once, due days repeat</li>
+        <li>Pay-yourself-first savings figure</li>
+        <li>All Learn money basics lessons</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <h3>Plus <span class="tag">Coming later</span></h3>
+      <div class="price">$2 <small>/ month</small></div>
+      <ul>
+        <li>Everything in Free</li>
+        <li>Extra budget views and reminders</li>
+        <li>Helps fund the free workshops</li>
+      </ul>
+    </div>
+    <div class="plan featured">
+      <h3>Premium <span class="tag">Coming later</span></h3>
+      <div class="price">$5 <small>/ month</small></div>
+      <ul>
+        <li>Everything in Plus</li>
+        <li><strong>Bank linking</strong> — connect your own bank through a third-party service (like Plaid) so balances and transactions come in automatically</li>
+        <li>Read-only: the tool can see, never move, your money</li>
+        <li>TSC never sees or stores your bank password</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="notebox" style="margin-top:12px">
+    <h3>About bank linking — later date, Premium only</h3>
+    <p>Bank linking is <strong>not in this launch version</strong>. For now you type your numbers in by hand and your money stays entirely in your own bank account — nothing is held, loaded, or paid out by this tool.</p>
+    <p>When it arrives, it will be a Premium feature added at a later date, using a third-party linking service. Set-aside amounts for bills will show inside the tool as a plan — your own bank still does the actual paying on the due date.</p>
+  </div>
+
+  <footer>
+    <div><strong style="color:var(--ink)">TSC Budgeting Tool</strong> · by TylerSmithCo · A web version first — the full app comes later, under the same name.</div>
+    <div>Your entries are kept in this browser on this device only — there is no account and nothing is sent to a server. Clearing your browser data will clear them. General education only — not personal financial advice. Questions: <a href="mailto:tylersmithco.ri@gmail.com">tylersmithco.ri@gmail.com</a></div>
+    <div>© 2026 TylerSmithCo. All rights reserved.</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "tsc-budget-v1";
+  var state = { incomes: [], templates: [], expenses: [], paid: {}, savePct: 10 };
+  var viewDate = new Date(); viewDate.setDate(1);
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw){ var p = JSON.parse(raw); if(p && typeof p === "object"){
+        state.incomes = Array.isArray(p.incomes) ? p.incomes : [];
+        state.templates = Array.isArray(p.templates) ? p.templates : [];
+        state.expenses = Array.isArray(p.expenses) ? p.expenses : [];
+        state.paid = p.paid && typeof p.paid === "object" ? p.paid : {};
+        if(typeof p.savePct === "number") state.savePct = p.savePct;
+      }}
+    }catch(e){ /* storage unavailable — tool still works for this session */ }
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function money(n){ var v = Number(n)||0; return "$" + v.toLocaleString("en-US",{minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits:2}); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function monthKey(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
+  function monthName(d){ return d.toLocaleDateString("en-US",{month:"long", year:"numeric"}); }
+  function dueDateFor(d, day){
+    var last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+    return new Date(d.getFullYear(), d.getMonth(), Math.min(day, last));
+  }
+  function fmtDue(dt){ return dt.toLocaleDateString("en-US",{month:"short", day:"numeric"}); }
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* Due day select 1–31 */
+  var daySel = $("tplDay");
+  for(var d=1; d<=31; d++){ var o=document.createElement("option"); o.value=d; o.textContent=d; if(d===1) o.selected=true; daySel.appendChild(o); }
+
+  /* Tabs */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+  function show(view){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.getAttribute("data-view")===view ? "true":"false"); });
+    ["budget","bills","learn"].forEach(function(v){ $("view-"+v).hidden = v!==view; });
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  tabs.forEach(function(t){ t.addEventListener("click", function(){ show(t.getAttribute("data-view")); }); });
+  $("goBillsBtn").addEventListener("click", function(){ show("bills"); });
+
+  /* Month nav */
+  $("prevMonth").addEventListener("click", function(){ viewDate.setMonth(viewDate.getMonth()-1); render(); });
+  $("nextMonth").addEventListener("click", function(){ viewDate.setMonth(viewDate.getMonth()+1); render(); });
+
+  /* Forms */
+  $("incomeForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = $("incName").value.trim(), amt = parseFloat($("incAmt").value);
+    if(!name || !(amt>0)) return;
+    state.incomes.push({ id: uid(), name: name, amount: amt, primary: state.incomes.length===0 });
+    $("incName").value=""; $("incAmt").value="";
+    save(); render();
+  });
+  $("templateForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = $("tplName").value.trim(), amt = parseFloat($("tplAmt").value), day = parseInt($("tplDay").value,10);
+    if(!name || !(amt>0) || !(day>=1 && day<=31)) return;
+    state.templates.push({ id: uid(), name: name, amount: amt, dueDay: day });
+    $("tplName").value=""; $("tplAmt").value="";
+    save(); render();
+  });
+  $("expenseForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = $("expName").value.trim(), amt = parseFloat($("expAmt").value), cat = $("expCat").value;
+    if(!name || !(amt>0)) return;
+    state.expenses.push({ id: uid(), month: monthKey(viewDate), name: name, amount: amt, cat: cat });
+    $("expName").value=""; $("expAmt").value="";
+    save(); render();
+  });
+  $("savePct").addEventListener("input", function(){
+    state.savePct = parseInt(this.value,10)||0; save(); renderSave();
+  });
+
+  /* Delegated actions */
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-action]"); if(!b) return;
+    var action = b.getAttribute("data-action"), id = b.getAttribute("data-id");
+    if(action==="del-income"){
+      state.incomes = state.incomes.filter(function(x){ return x.id!==id; });
+      if(state.incomes.length && !state.incomes.some(function(x){return x.primary;})) state.incomes[0].primary = true;
+    }
+    if(action==="make-primary"){
+      state.incomes.forEach(function(x){ x.primary = x.id===id; });
+    }
+    if(action==="del-template"){
+      if(confirmDelete(b, "Delete this bill for good? It will stop repeating in every month.")) {
+        state.templates = state.templates.filter(function(x){ return x.id!==id; });
+      } else return;
+    }
+    if(action==="toggle-paid"){
+      var k = monthKey(viewDate) + ":" + id;
+      state.paid[k] = !state.paid[k]; if(!state.paid[k]) delete state.paid[k];
+    }
+    if(action==="del-expense"){
+      state.expenses = state.expenses.filter(function(x){ return x.id!==id; });
+    }
+    save(); render();
+  });
+  function confirmDelete(btn, msg){
+    /* In-page confirm — sandboxed pages cannot use window.confirm reliably, so use a two-tap pattern */
+    if(btn.getAttribute("data-confirm")==="1"){ btn.removeAttribute("data-confirm"); btn.textContent = "Delete bill"; return true; }
+    btn.setAttribute("data-confirm","1"); btn.textContent = "Tap again to delete";
+    setTimeout(function(){ if(btn.isConnected){ btn.removeAttribute("data-confirm"); btn.textContent="Delete bill"; } }, 3000);
+    return false;
+  }
+
+  function renderSave(){
+    var primary = state.incomes.filter(function(x){ return x.primary; })[0];
+    var box = $("saveBox");
+    if(!primary){ box.hidden = true; return; }
+    box.hidden = false;
+    $("savePct").value = state.savePct;
+    $("savePctOut").textContent = state.savePct + "%";
+    var perMonth = primary.amount * state.savePct / 100;
+    var perWeek = perMonth * 12 / 52;
+    $("saveText").innerHTML = "Set aside <span class=\"big\">" + money(perMonth) + " a month</span> — about <span class=\"big\">" + money(Math.round(perWeek)) + " a week</span> — from " + esc(primary.name) + ", as soon as you get paid. Move it to savings at your own bank.";
+  }
+
+  function render(){
+    var mk = monthKey(viewDate);
+    $("monthLabel").textContent = monthName(viewDate);
+    var today = new Date(); today.setHours(0,0,0,0);
+    var isCurrent = mk === monthKey(new Date());
+    $("monthSub").textContent = isCurrent ? "You are looking at the current month." : "Bills below already carry their due days.";
+
+    /* Income */
+    var incList = $("incomeList"); incList.innerHTML = "";
+    var totalIncome = 0;
+    state.incomes.forEach(function(inc){
+      totalIncome += Number(inc.amount)||0;
+      var li = document.createElement("li"); li.className = "row";
+      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(inc.name) + "</div>" +
+        "<div class=\"row-meta\">" + (inc.primary ? "Primary income" : "Secondary income") + " · per month</div></div>" +
+        "<span class=\"amt\">" + money(inc.amount) + "</span>" +
+        (inc.primary ? "<span class=\"badge primary\">Primary</span>"
+                     : "<button class=\"smallbtn\" data-action=\"make-primary\" data-id=\"" + inc.id + "\">Make Primary</button>") +
+        "<button class=\"smallbtn danger\" data-action=\"del-income\" data-id=\"" + inc.id + "\" aria-label=\"Remove " + esc(inc.name) + "\">Remove</button>";
+      incList.appendChild(li);
+    });
+    $("incomeEmpty").hidden = state.incomes.length>0;
+    renderSave();
+
+    /* Bills this month (from templates) */
+    var billList = $("billMonthList"); billList.innerHTML = "";
+    var totalBills = 0, paidCount = 0, nextDue = null;
+    var sorted = state.templates.slice().sort(function(a,b){ return a.dueDay - b.dueDay; });
+    sorted.forEach(function(t){
+      totalBills += Number(t.amount)||0;
+      var due = dueDateFor(viewDate, t.dueDay);
+      var isPaid = !!state.paid[mk + ":" + t.id];
+      if(isPaid) paidCount++;
+      var cls = "due", label = "Due " + fmtDue(due);
+      if(isPaid){ cls += " paid"; label = "Paid · " + fmtDue(due); }
+      else if(isCurrent){
+        var diff = Math.round((due - today)/86400000);
+        if(diff < 0){ cls += " overdue"; label = "Overdue · " + fmtDue(due); }
+        else if(diff === 0){ cls += " soon"; label = "Due today"; }
+        else if(diff <= 5){ cls += " soon"; label = "Due in " + diff + "d · " + fmtDue(due); if(!nextDue) nextDue = t; }
+        else if(!nextDue) nextDue = t;
+      }
+      var li = document.createElement("li"); li.className = "row";
+      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(t.name) + "</div>" +
+        "<div class=\"row-meta\">Repeats every month · day " + t.dueDay + "</div></div>" +
+        "<span class=\"" + cls + "\">" + label + "</span>" +
+        "<span class=\"amt\">" + money(t.amount) + "</span>" +
+        "<button class=\"smallbtn paidbtn" + (isPaid ? " is-paid" : "") + "\" data-action=\"toggle-paid\" data-id=\"" + t.id + "\">" + (isPaid ? "Paid ✓" : "Mark paid") + "</button>";
+      billList.appendChild(li);
+    });
+    $("billMonthEmpty").hidden = state.templates.length>0;
+
+    /* Expenses this month */
+    var expList = $("expenseList"); expList.innerHTML = "";
+    var monthExps = state.expenses.filter(function(x){ return x.month===mk; });
+    var totalSpend = 0;
+    monthExps.forEach(function(x){
+      totalSpend += Number(x.amount)||0;
+      var li = document.createElement("li"); li.className = "row";
+      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(x.name) + "</div>" +
+        "<div class=\"row-meta\">" + esc(x.cat) + "</div></div>" +
+        "<span class=\"amt\">" + money(x.amount) + "</span>" +
+        "<button class=\"smallbtn danger\" data-action=\"del-expense\" data-id=\"" + x.id + "\" aria-label=\"Remove " + esc(x.name) + "\">Remove</button>";
+      expList.appendChild(li);
+    });
+    $("expenseEmpty").hidden = monthExps.length>0;
+
+    /* Summary */
+    var left = totalIncome - totalBills - totalSpend;
+    $("statIncome").textContent = money(totalIncome);
+    $("statIncomeSub").textContent = state.incomes.length ? state.incomes.length + (state.incomes.length===1 ? " income source" : " income sources") : "Add income below";
+    $("statBills").textContent = money(totalBills);
+    $("statBillsSub").textContent = state.templates.length ? paidCount + " of " + state.templates.length + " marked paid" + (nextDue && isCurrent ? " · next: " + nextDue.name : "") : "Set bills once in Monthly bills";
+    $("statSpend").textContent = money(totalSpend);
+    $("statLeft").textContent = money(left);
+    var card = $("statLeftCard");
+    card.classList.toggle("good", left>0); card.classList.toggle("bad", left<0);
+    $("statLeftSub").textContent = totalIncome===0 ? "Add income to see what is left" : (left<0 ? "Over this month — bills & spending are more than income" : "Income minus bills & spending");
+
+    /* Templates list */
+    var tplList = $("templateList"); tplList.innerHTML = "";
+    var tplTotal = 0;
+    sorted.forEach(function(t){
+      tplTotal += Number(t.amount)||0;
+      var li = document.createElement("li"); li.className = "row";
+      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(t.name) + "</div>" +
+        "<div class=\"row-meta\">Due on day " + t.dueDay + " of every month</div></div>" +
+        "<span class=\"due\">Day " + t.dueDay + "</span>" +
+        "<span class=\"amt\">" + money(t.amount) + "</span>" +
+        "<button class=\"smallbtn danger\" data-action=\"del-template\" data-id=\"" + t.id + "\">Delete bill</button>";
+      tplList.appendChild(li);
+    });
+    $("templateEmpty").hidden = state.templates.length>0;
+    $("billsTotalLine").textContent = state.templates.length ? state.templates.length + (state.templates.length===1 ? " bill" : " bills") + " · " + money(tplTotal) + " total per month — repeats automatically." : "No bills yet.";
+  }
+
+  load(); render();
+})();
+</script>
+</body>
+</html>

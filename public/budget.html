@@ -138,6 +138,16 @@
   .due.soon{ background:var(--amber-soft); color:var(--amber); }
   .due.overdue{ background:var(--red-soft); color:var(--red); }
   .due.paid{ background:var(--green-soft); color:var(--green); }
+  .wk{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:11.5px; font-weight:600; padding:4px 7px; border-radius:999px; background:var(--cobalt-soft); color:var(--cobalt-dark); white-space:nowrap; }
+  @media (prefers-color-scheme: dark){ .wk{ color:#c7d9fb } }
+  .wkbox{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:14px; border:1px solid var(--line); border-left:4px solid var(--cobalt); background:var(--cobalt-soft); border-radius:8px; padding:13px 14px; }
+  .wkbox h4{ margin:0 0 3px; font-size:14px; font-family:"Archivo",sans-serif; }
+  .wkbox p{ margin:0; font-size:13.5px; color:var(--ink-2); }
+  .wkbox .wkbig{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:26px; font-weight:600; letter-spacing:-.02em; color:var(--cobalt-dark); white-space:nowrap; }
+  @media (prefers-color-scheme: dark){ .wkbox .wkbig{ color:#c7d9fb } }
+  .wkbox .wkbig small{ display:block; font-family:"Public Sans",sans-serif; font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:1px; }
+  .wkprev{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-weight:600; color:var(--cobalt-dark) }
+  @media (prefers-color-scheme: dark){ .wkprev{ color:#c7d9fb } }
   .smallbtn{
     appearance:none; border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
     font:inherit; font-size:13px; font-weight:600; padding:7px 10px; border-radius:7px; cursor:pointer; white-space:nowrap;
@@ -261,6 +271,14 @@
       </div>
     </div>
 
+    <div class="wkbox" id="wkBox" hidden>
+      <div>
+        <h4>Save a little each week for your bills</h4>
+        <p>Every monthly bill <strong>÷ 4</strong> is what to set aside each week. You move it yourself at your own bank — nothing here links to a bank or moves money.</p>
+      </div>
+      <div class="wkbig" id="wkTotal">$0<small>a week</small></div>
+    </div>
+
     <div class="summary" aria-label="Month summary">
       <div class="stat"><label>Income</label><div class="num" id="statIncome">$0</div><div class="sub" id="statIncomeSub">Add income below</div></div>
       <div class="stat"><label>Bills due</label><div class="num" id="statBills">$0</div><div class="sub" id="statBillsSub">—</div></div>
@@ -353,6 +371,7 @@
           </label>
           <label class="f">Amount $<input id="tplAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
         </div>
+        <p class="hint" id="tplWkHint">Type an amount to see what to set aside each week.</p>
         <button class="btn" type="submit">Add monthly bill — repeats every month</button>
         <p class="hint">If a bill is due on the 31st, in shorter months it will show on that month’s last day.</p>
       </form>
@@ -513,7 +532,7 @@
     var name = $("tplName").value.trim(), amt = parseFloat($("tplAmt").value), day = parseInt($("tplDay").value,10);
     if(!name || !(amt>0) || !(day>=1 && day<=31)) return;
     state.templates.push({ id: uid(), name: name, amount: amt, dueDay: day });
-    $("tplName").value=""; $("tplAmt").value="";
+    $("tplName").value=""; $("tplAmt").value=""; updateTplWk();
     save(); render();
   });
   $("expenseForm").addEventListener("submit", function(e){
@@ -528,6 +547,15 @@
   $("savePct").addEventListener("input", function(){
     state.savePct = parseInt(this.value,10)||0; save(); render();
   });
+
+  /* Live weekly preview while typing a new bill amount */
+  function updateTplWk(){
+    var amt = parseFloat($("tplAmt").value), el = $("tplWkHint");
+    el.innerHTML = amt>0
+      ? "That is <span class=\"wkprev\">" + money(amt/4) + " a week</span> to set aside for this bill (monthly ÷ 4)."
+      : "Type an amount to see what to set aside each week.";
+  }
+  $("tplAmt").addEventListener("input", updateTplWk);
 
   /* Delegated actions */
   document.addEventListener("click", function(e){
@@ -628,10 +656,16 @@
         "<div class=\"row-main\"><div class=\"row-name\"" + (isPaid ? " style=\"text-decoration:line-through;opacity:.65\"" : "") + ">" + esc(t.name) + "</div>" +
         "<div class=\"row-meta\">" + (isPaid ? "Paid for this month" : "Not paid yet") + " · due " + fmtDue(due) + "</div></div>" +
         "<span class=\"" + cls + "\">" + label + "</span>" +
+        "<span class=\"wk\">" + money((Number(t.amount)||0)/4) + "/wk</span>" +
         "<span class=\"amt\">" + money(t.amount) + "</span>";
       billList.appendChild(li);
     });
     $("billMonthEmpty").hidden = state.templates.length>0;
+
+    /* Weekly savings for all bills this month (monthly ÷ 4) */
+    var weeklyTotal = totalBills / 4;
+    $("wkBox").hidden = state.templates.length===0;
+    $("wkTotal").innerHTML = money(weeklyTotal) + "<small>a week</small>";
 
     /* Expenses this month */
     var expList = $("expenseList"); expList.innerHTML = "";
@@ -673,12 +707,13 @@
       li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(t.name) + "</div>" +
         "<div class=\"row-meta\">Due on day " + t.dueDay + " of every month</div></div>" +
         "<span class=\"due\">Day " + t.dueDay + "</span>" +
+        "<span class=\"wk\">" + money((Number(t.amount)||0)/4) + "/wk</span>" +
         "<span class=\"amt\">" + money(t.amount) + "</span>" +
         "<button class=\"smallbtn danger\" data-action=\"del-template\" data-id=\"" + t.id + "\">Delete bill</button>";
       tplList.appendChild(li);
     });
     $("templateEmpty").hidden = state.templates.length>0;
-    $("billsTotalLine").textContent = state.templates.length ? state.templates.length + (state.templates.length===1 ? " bill" : " bills") + " · " + money(tplTotal) + " total per month — repeats automatically." : "No bills yet.";
+    $("billsTotalLine").textContent = state.templates.length ? state.templates.length + (state.templates.length===1 ? " bill" : " bills") + " · " + money(tplTotal) + " total per month — save " + money(tplTotal/4) + " a week — repeats automatically." : "No bills yet.";
   }
 
   load(); render();

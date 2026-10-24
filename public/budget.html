@@ -265,7 +265,7 @@
       <div class="stat"><label>Income</label><div class="num" id="statIncome">$0</div><div class="sub" id="statIncomeSub">Add income below</div></div>
       <div class="stat"><label>Bills due</label><div class="num" id="statBills">$0</div><div class="sub" id="statBillsSub">—</div></div>
       <div class="stat"><label>Other spending</label><div class="num" id="statSpend">$0</div><div class="sub">What you add by hand</div></div>
-      <div class="stat" id="statLeftCard"><label>Left after bills &amp; spending</label><div class="num" id="statLeft">$0</div><div class="sub" id="statLeftSub">Income minus bills &amp; spending</div></div>
+      <div class="stat" id="statLeftCard"><label>Left after savings, bills &amp; spending</label><div class="num" id="statLeft">$0</div><div class="sub" id="statLeftSub">Income minus bills &amp; spending</div></div>
     </div>
 
     <div class="grid two">
@@ -312,7 +312,8 @@
     <!-- Spending -->
     <div class="card" style="margin-top:14px">
       <div class="card-head">
-        <div><h3>Other spending this month</h3><p>Groceries, gas, eating out — anything that is not a set monthly bill.</p></div>
+        <div><h3>Spending not in the budget</h3><p>Log it the moment it happens — like emergency gas. It comes out of what's left after savings and bills.</p></div>
+        <span class="badge" id="expTotalBadge">$0 this month</span>
       </div>
       <ul class="list" id="expenseList"></ul>
       <div class="empty" id="expenseEmpty"><strong>Nothing added yet</strong>When you spend, add it here so the “left” number at the top stays honest.</div>
@@ -321,10 +322,11 @@
           <label class="f full">What was it?<input id="expName" type="text" placeholder="e.g. Groceries" autocomplete="off" required></label>
           <label class="f">Category
             <select id="expCat">
-              <option>Groceries</option><option>Transport</option><option>Food out</option><option>Household</option><option>Fun</option><option>Other</option>
+              <option>Emergency</option><option>Groceries</option><option>Transport</option><option>Food out</option><option>Household</option><option>Fun</option><option>Other</option>
             </select>
           </label>
           <label class="f">Amount $<input id="expAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+          <label class="f">When<input id="expDate" type="date" required></label>
         </div>
         <button class="btn" type="submit">Add spending</button>
       </form>
@@ -516,19 +518,20 @@
   });
   $("expenseForm").addEventListener("submit", function(e){
     e.preventDefault();
-    var name = $("expName").value.trim(), amt = parseFloat($("expAmt").value), cat = $("expCat").value;
+    var name = $("expName").value.trim(), amt = parseFloat($("expAmt").value), cat = $("expCat").value, dv = $("expDate").value;
     if(!name || !(amt>0)) return;
-    state.expenses.push({ id: uid(), month: monthKey(viewDate), name: name, amount: amt, cat: cat });
+    var mo = dv ? dv.slice(0,7) : monthKey(viewDate);
+    state.expenses.push({ id: uid(), month: mo, date: dv, name: name, amount: amt, cat: cat });
     $("expName").value=""; $("expAmt").value="";
     save(); render();
   });
   $("savePct").addEventListener("input", function(){
-    state.savePct = parseInt(this.value,10)||0; save(); renderSave();
+    state.savePct = parseInt(this.value,10)||0; save(); render();
   });
 
   /* Delegated actions */
   document.addEventListener("click", function(e){
-    var b = e.target.closest("[data-action]"); if(!b) return;
+    var b = e.target.closest("[data-action]"); if(!b || b.tagName==="INPUT") return;
     var action = b.getAttribute("data-action"), id = b.getAttribute("data-id");
     if(action==="del-income"){
       state.incomes = state.incomes.filter(function(x){ return x.id!==id; });
@@ -542,7 +545,7 @@
         state.templates = state.templates.filter(function(x){ return x.id!==id; });
       } else return;
     }
-    if(action==="toggle-paid"){
+    if(action==="toggle-paid" && b.tagName!=="INPUT"){
       var k = monthKey(viewDate) + ":" + id;
       state.paid[k] = !state.paid[k]; if(!state.paid[k]) delete state.paid[k];
     }
@@ -551,6 +554,13 @@
     }
     save(); render();
   });
+  document.addEventListener("change", function(e){
+    var b = e.target; if(!b.matches || !b.matches("input[data-action=toggle-paid]")) return;
+    var k = monthKey(viewDate) + ":" + b.getAttribute("data-id");
+    if(b.checked) state.paid[k] = true; else delete state.paid[k];
+    save(); render();
+  });
+  function isoDay(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
   function confirmDelete(btn, msg){
     /* In-page confirm — sandboxed pages cannot use window.confirm reliably, so use a two-tap pattern */
     if(btn.getAttribute("data-confirm")==="1"){ btn.removeAttribute("data-confirm"); btn.textContent = "Delete bill"; return true; }
@@ -614,24 +624,25 @@
         else if(!nextDue) nextDue = t;
       }
       var li = document.createElement("li"); li.className = "row";
-      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(t.name) + "</div>" +
-        "<div class=\"row-meta\">Repeats every month · day " + t.dueDay + "</div></div>" +
+      li.innerHTML = "<input type=\"checkbox\" style=\"width:22px;height:22px;flex:0 0 auto;cursor:pointer\" data-action=\"toggle-paid\" data-id=\"" + t.id + "\"" + (isPaid ? " checked" : "") + " aria-label=\"" + esc(t.name) + " paid this month\">" +
+        "<div class=\"row-main\"><div class=\"row-name\"" + (isPaid ? " style=\"text-decoration:line-through;opacity:.65\"" : "") + ">" + esc(t.name) + "</div>" +
+        "<div class=\"row-meta\">" + (isPaid ? "Paid for this month" : "Not paid yet") + " · due " + fmtDue(due) + "</div></div>" +
         "<span class=\"" + cls + "\">" + label + "</span>" +
-        "<span class=\"amt\">" + money(t.amount) + "</span>" +
-        "<button class=\"smallbtn paidbtn" + (isPaid ? " is-paid" : "") + "\" data-action=\"toggle-paid\" data-id=\"" + t.id + "\">" + (isPaid ? "Paid ✓" : "Mark paid") + "</button>";
+        "<span class=\"amt\">" + money(t.amount) + "</span>";
       billList.appendChild(li);
     });
     $("billMonthEmpty").hidden = state.templates.length>0;
 
     /* Expenses this month */
     var expList = $("expenseList"); expList.innerHTML = "";
-    var monthExps = state.expenses.filter(function(x){ return x.month===mk; });
+    var monthExps = state.expenses.filter(function(x){ return x.month===mk; }).sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
+    var td = new Date(); $("expDate").value = isCurrent ? isoDay(td) : isoDay(dueDateFor(viewDate, 1));
     var totalSpend = 0;
     monthExps.forEach(function(x){
       totalSpend += Number(x.amount)||0;
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(x.name) + "</div>" +
-        "<div class=\"row-meta\">" + esc(x.cat) + "</div></div>" +
+        "<div class=\"row-meta\">" + esc(x.cat) + (x.date ? " · " + fmtDue(new Date(x.date + "T00:00:00")) : "") + "</div></div>" +
         "<span class=\"amt\">" + money(x.amount) + "</span>" +
         "<button class=\"smallbtn danger\" data-action=\"del-expense\" data-id=\"" + x.id + "\" aria-label=\"Remove " + esc(x.name) + "\">Remove</button>";
       expList.appendChild(li);
@@ -639,7 +650,10 @@
     $("expenseEmpty").hidden = monthExps.length>0;
 
     /* Summary */
-    var left = totalIncome - totalBills - totalSpend;
+    $("expTotalBadge").textContent = money(totalSpend) + " this month";
+    var primaryInc = state.incomes.filter(function(x){ return x.primary; })[0];
+    var saved = primaryInc ? primaryInc.amount * state.savePct / 100 : 0;
+    var left = totalIncome - saved - totalBills - totalSpend;
     $("statIncome").textContent = money(totalIncome);
     $("statIncomeSub").textContent = state.incomes.length ? state.incomes.length + (state.incomes.length===1 ? " income source" : " income sources") : "Add income below";
     $("statBills").textContent = money(totalBills);
@@ -648,7 +662,7 @@
     $("statLeft").textContent = money(left);
     var card = $("statLeftCard");
     card.classList.toggle("good", left>0); card.classList.toggle("bad", left<0);
-    $("statLeftSub").textContent = totalIncome===0 ? "Add income to see what is left" : (left<0 ? "Over this month — bills & spending are more than income" : "Income minus bills & spending");
+    $("statLeftSub").textContent = totalIncome===0 ? "Add income to see what is left" : (left<0 ? "Over this month — savings, bills & spending are more than income" : "Income minus savings (" + money(saved) + "), bills & spending");
 
     /* Templates list */
     var tplList = $("templateList"); tplList.innerHTML = "";

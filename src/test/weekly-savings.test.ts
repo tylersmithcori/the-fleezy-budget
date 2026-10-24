@@ -22,8 +22,11 @@ function openTool() {
   return dom.window.document;
 }
 
+type EventCtor = new (type: string, init?: { bubbles?: boolean }) => unknown;
+
 function fire(doc: Document, node: Element, type: string) {
-  node.dispatchEvent(new (doc.defaultView as unknown as Window).Event(type, { bubbles: true }));
+  const view = doc.defaultView as unknown as { Event: EventCtor };
+  node.dispatchEvent(new view.Event(type, { bubbles: true }) as Event);
 }
 
 function typeBillAmount(doc: Document, amount: string) {

@@ -15,11 +15,15 @@ function openTool() {
     url: "http://localhost/",
     runScripts: "dangerously",
     pretendToBeVisual: true,
-    beforeParse(window) {
+    beforeParse(window: { scrollTo: unknown }) {
       window.scrollTo = () => {};
     },
   });
-  return dom.window.document;
+  return dom.window.document as Document;
+}
+
+function viewOf(doc: Document) {
+  return doc.defaultView!;
 }
 
 function typeBillAmount(doc: Document, amount: string) {

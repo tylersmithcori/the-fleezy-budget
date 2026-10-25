@@ -565,7 +565,7 @@
 (function(){
   "use strict";
   var KEY = "tsc-budget-v1";
-  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, ebtAmt: {}, ebtExp: [] };
+  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notified: {}, ebtAmt: {}, ebtExp: [] };
   var viewDate = new Date(); viewDate.setDate(1);
 
   function load(){
@@ -581,10 +581,12 @@
         else if(typeof p.savePct === "number") state.saveVal = p.savePct;
         state.ebtAmt = p.ebtAmt && typeof p.ebtAmt === "object" ? p.ebtAmt : {};
         state.ebtExp = Array.isArray(p.ebtExp) ? p.ebtExp : [];
+        if(typeof p.showWeekly === "boolean") state.showWeekly = p.showWeekly;
+        state.notified = p.notified && typeof p.notified === "object" ? p.notified : {};
       }}
     }catch(e){ /* storage unavailable — tool still works for this session */ }
   }
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); return true; }catch(e){ return false; } }
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function money(n){ var v = Number(n)||0; return "$" + v.toLocaleString("en-US",{minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits:2}); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -894,7 +896,7 @@
     var useWk = state.showWeekly && saved > 0;
     $("wkBox").hidden = state.templates.length===0 && !useWk;
     $("wkTotal").innerHTML = money(weeklyTotal) + "<small>a week for bills</small>";
-    $("wkSmartWrap").hidden = !useWk;
+    $("wkSmartWrap").hidden = !useWk; $("wkSmart").hidden = !useWk;
     $("wkSmart").innerHTML = money(weeklySave + weeklyTotal) + "<small>set aside each week</small>";
     $("wkSmartText").textContent = money(weeklySave) + " savings + " + money(weeklyTotal) + " bills, every week.";
 

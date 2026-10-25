@@ -152,6 +152,12 @@
   .paybox{ border-left-color:var(--amber); background:var(--amber-soft); }
   .prio{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:12px; font-weight:600; color:var(--cobalt); min-width:24px; }
   .savegrid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
+  .checkline{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13.5px; font-weight:600; color:var(--ink-2); cursor:pointer; }
+  .checkline input{ width:20px; height:20px; min-height:auto; padding:0; }
+  .rembox{ border-left-color:var(--amber); background:var(--amber-soft); }
+  .remlist{ margin:4px 0 6px; padding-left:18px; font-size:14px; color:var(--ink); }
+  .rcpt summary{ cursor:pointer; font-size:12.5px; font-weight:600; color:var(--cobalt); margin-top:3px; }
+  .rcpt img{ display:block; max-width:100%; max-height:320px; margin-top:6px; border-radius:6px; border:1px solid var(--line); }
   .ebtstats{ display:grid; grid-template-columns:1fr; gap:10px; padding:0 16px 14px; }
   @media(min-width:560px){ .ebtstats{ grid-template-columns:repeat(3,1fr); } }
   .ebtstats .stat{ box-shadow:none; }
@@ -281,12 +287,25 @@
       </div>
     </div>
 
+    <div class="wkbox rembox" id="remBox" hidden>
+      <div>
+        <h4>Bill reminders</h4>
+        <ul class="remlist" id="remList"></ul>
+        <p>Reminders show 7 days and 1 day before each due date. You pay the bill yourself — nothing is paid automatically.</p>
+      </div>
+      <button class="smallbtn" type="button" id="remNotify" hidden>Turn on browser reminders</button>
+    </div>
+
     <div class="wkbox" id="wkBox" hidden>
       <div>
         <h4>Save a little each week for your bills</h4>
         <p>Every monthly bill <strong>÷ 4</strong> is what to set aside each week. You move it yourself at your own bank — nothing here links to a bank or moves money.</p>
+        <p id="wkSmartWrap" hidden><strong>Smart weekly set-aside:</strong> <span id="wkSmartText"></span></p>
       </div>
-      <div class="wkbig" id="wkTotal">$0<small>a week</small></div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap">
+        <div class="wkbig" id="wkTotal">$0<small>a week</small></div>
+        <div class="wkbig" id="wkSmart" hidden>$0</div>
+      </div>
     </div>
 
     <div class="wkbox paybox" id="payBox" hidden>
@@ -323,14 +342,16 @@
             <label class="f">How to save<select id="saveMode"><option value="pct">Percent of what I make</option><option value="amt">Set amount each time income comes in</option></select></label>
             <label class="f"><span id="saveValLabel">Percent %</span><input id="saveVal" type="number" inputmode="decimal" min="0" step="0.01"></label>
           </div>
+          <label class="checkline"><input type="checkbox" id="showWeekly"> Use weekly savings (monthly savings ÷ 4)</label>
         </div>
         <form class="form" id="incomeForm">
-          <div class="frow">
-            <label class="f">Name<input id="incName" type="text" placeholder="e.g. Main job" autocomplete="off" required></label>
-            <label class="f">Per month $<input id="incAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+          <div class="frow3">
+            <label class="f full">Name<input id="incName" type="text" placeholder="e.g. Main job" autocomplete="off" required></label>
+            <label class="f">How often<select id="incFreq"><option value="month">Per month</option><option value="week">Per week</option></select></label>
+            <label class="f">Amount $<input id="incAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
           </div>
           <button class="btn" type="submit">Add income</button>
-          <p class="hint">Use your usual monthly take-home, after tax, if you can.</p>
+          <p class="hint">Use your take-home, after tax. Weekly pay counts as 4 checks a month — savings and bill set-asides come from each check.</p>
         </form>
       </div>
 
@@ -379,6 +400,10 @@
           </label>
           <label class="f">Amount $<input id="expAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
           <label class="f">When<input id="expDate" type="date" required></label>
+        </div>
+        <div>
+          <label class="f">Receipt photo<input id="expPhoto" type="file" accept="image/*" capture="environment"></label>
+          <p class="hint" id="expPhotoHint">Optional — snap or pick a picture of the receipt.</p>
         </div>
         <button class="btn" type="submit">Add spending</button>
       </form>
@@ -540,7 +565,7 @@
 (function(){
   "use strict";
   var KEY = "tsc-budget-v1";
-  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, ebtAmt: {}, ebtExp: [] };
+  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notified: {}, ebtAmt: {}, ebtExp: [] };
   var viewDate = new Date(); viewDate.setDate(1);
 
   function load(){
@@ -556,10 +581,12 @@
         else if(typeof p.savePct === "number") state.saveVal = p.savePct;
         state.ebtAmt = p.ebtAmt && typeof p.ebtAmt === "object" ? p.ebtAmt : {};
         state.ebtExp = Array.isArray(p.ebtExp) ? p.ebtExp : [];
+        if(typeof p.showWeekly === "boolean") state.showWeekly = p.showWeekly;
+        state.notified = p.notified && typeof p.notified === "object" ? p.notified : {};
       }}
     }catch(e){ /* storage unavailable — tool still works for this session */ }
   }
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); return true; }catch(e){ return false; } }
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function money(n){ var v = Number(n)||0; return "$" + v.toLocaleString("en-US",{minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits:2}); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -594,9 +621,9 @@
   /* Forms */
   $("incomeForm").addEventListener("submit", function(e){
     e.preventDefault();
-    var name = $("incName").value.trim(), amt = parseFloat($("incAmt").value);
+    var name = $("incName").value.trim(), amt = parseFloat($("incAmt").value), freq = $("incFreq").value==="week" ? "week" : "month";
     if(!name || !(amt>0)) return;
-    state.incomes.push({ id: uid(), name: name, amount: amt, primary: state.incomes.length===0 });
+    state.incomes.push({ id: uid(), name: name, amount: amt, freq: freq, primary: state.incomes.length===0 });
     $("incName").value=""; $("incAmt").value="";
     save(); render();
   });
@@ -616,9 +643,21 @@
     var name = $("expName").value.trim(), amt = parseFloat($("expAmt").value), cat = $("expCat").value, dv = $("expDate").value;
     if(!name || !(amt>0)) return;
     var mo = dv ? dv.slice(0,7) : monthKey(viewDate);
-    state.expenses.push({ id: uid(), month: mo, date: dv, name: name, amount: amt, cat: cat });
-    $("expName").value=""; $("expAmt").value="";
-    save(); render();
+    readReceipt($("expPhoto"), function(photo){
+      var x = { id: uid(), month: mo, date: dv, name: name, amount: amt, cat: cat };
+      if(photo) x.receipt = photo;
+      state.expenses.push(x);
+      var ok = save();
+      if(!ok && photo){ delete x.receipt; save(); $("expPhotoHint").textContent = "Saved without the photo — this browser is out of room for more pictures."; }
+      else $("expPhotoHint").textContent = "Optional — snap or pick a picture of the receipt.";
+      $("expName").value=""; $("expAmt").value=""; $("expPhoto").value="";
+      render();
+    });
+  });
+  $("showWeekly").addEventListener("change", function(){ state.showWeekly = this.checked; save(); render(); });
+  $("remNotify").addEventListener("click", function(){
+    if(!("Notification" in window)) return;
+    Notification.requestPermission().then(function(){ render(); });
   });
   $("saveMode").addEventListener("change", function(){
     state.saveMode = this.value==="amt" ? "amt" : "pct"; save(); render();
@@ -699,10 +738,17 @@
     return false;
   }
 
-  /* Pay yourself first — savings comes off the top of every income */
-  function savingsFor(totalIncome){
+  /* Weekly pay = 4 checks a month; monthly totals add up from the weeks */
+  function checksOf(inc){ return inc.freq==="week" ? 4 : 1; }
+  function monthlyOf(inc){ return (Number(inc.amount)||0) * checksOf(inc); }
+  /* Savings off one check */
+  function saveFromCheck(inc){
     var v = Number(state.saveVal)||0;
-    return state.saveMode==="amt" ? v * state.incomes.length : totalIncome * v / 100;
+    return state.saveMode==="amt" ? v : (Number(inc.amount)||0) * v / 100;
+  }
+  /* Pay yourself first — savings comes off the top of every check */
+  function savingsFor(){
+    return state.incomes.reduce(function(s, inc){ return s + saveFromCheck(inc) * checksOf(inc); }, 0);
   }
   /* Payoff bills: total owed minus one payment for every month checked paid, up to the month shown */
   function owedLeft(t, mk){
@@ -711,18 +757,79 @@
     Object.keys(state.paid).forEach(function(k){ var i = k.indexOf(":"); if(k.slice(i+1)===t.id && k.slice(0,i)<=mk) n++; });
     return Math.max(0, Number(t.owed) - n * (Number(t.amount)||0));
   }
-  function renderSave(totalIncome){
+  function renderSave(totalIncome, totalBills){
     var box = $("saveBox");
     if(!state.incomes.length){ box.hidden = true; return; }
     box.hidden = false;
     $("saveMode").value = state.saveMode;
     $("saveValLabel").textContent = state.saveMode==="amt" ? "Amount $ each time" : "Percent %";
     if(document.activeElement !== $("saveVal")) $("saveVal").value = state.saveVal;
-    var perMonth = savingsFor(totalIncome);
+    $("showWeekly").checked = !!state.showWeekly;
+    var perMonth = savingsFor();
     var how = state.saveMode==="amt"
-      ? money(state.saveVal) + " from each income as it comes in (" + state.incomes.length + (state.incomes.length===1 ? " income" : " incomes") + ")"
-      : (Number(state.saveVal)||0) + "% of everything you make";
-    $("saveText").innerHTML = "Savings comes off the top first — before bills and spending. Set aside <span class=\"big\">" + money(perMonth) + " a month</span>: " + how + ". Move it to savings at your own bank.";
+      ? money(state.saveVal) + " from each check as it comes in"
+      : (Number(state.saveVal)||0) + "% of every check";
+    var html = "Savings comes off the top first — before bills and spending. Set aside <span class=\"big\">" + money(perMonth) + " a month</span>: " + how + ".";
+    if(state.showWeekly) html += " That is <span class=\"big\">" + money(perMonth/4) + " a week</span> (monthly ÷ 4).";
+    /* Per-check plan for weekly pay */
+    state.incomes.forEach(function(inc){
+      if(inc.freq!=="week") return;
+      var billShare = totalIncome>0 ? (totalBills/4) * (Number(inc.amount)||0) / (totalIncome/4) : 0;
+      var sv = saveFromCheck(inc);
+      html += "<br>From each " + money(inc.amount) + " " + esc(inc.name) + " check: <span class=\"big\">" + money(sv) + "</span> to savings + <span class=\"big\">" + money(billShare) + "</span> for bills — " + money(Math.max(0, inc.amount - sv - billShare)) + " left to spend.";
+    });
+    $("saveText").innerHTML = html + " Move it at your own bank.";
+  }
+
+  /* Receipt photo on a purchase (shrunk so it fits in this browser's storage) */
+  function receiptHtml(x){
+    return x.receipt ? "<details class=\"rcpt\"><summary>📷 Receipt</summary><img src=\"" + x.receipt + "\" alt=\"Receipt for " + esc(x.name) + "\"></details>" : "";
+  }
+  function readReceipt(input, cb){
+    var f = input.files && input.files[0];
+    if(!f){ cb(null); return; }
+    var r = new FileReader();
+    r.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var s = Math.min(1, 900 / Math.max(img.width, img.height));
+        var c = document.createElement("canvas"); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        cb(c.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = function(){ cb(null); };
+      img.src = r.result;
+    };
+    r.onerror = function(){ cb(null); };
+    r.readAsDataURL(f);
+  }
+
+  /* Due-date reminders: 7 days before and 1 day before, for unpaid bills */
+  function renderReminders(){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var items = [];
+    [0,1].forEach(function(off){
+      var m = new Date(today.getFullYear(), today.getMonth()+off, 1), mkey = monthKey(m);
+      state.templates.forEach(function(t){
+        var due = dueDateFor(m, t.dueDay), diff = Math.round((due - today)/86400000);
+        if(diff>=1 && diff<=7 && !state.paid[mkey + ":" + t.id]) items.push({ t: t, due: due, diff: diff, key: mkey + ":" + t.id });
+      });
+    });
+    items.sort(function(a,b){ return a.diff - b.diff; });
+    var list = $("remList"); list.innerHTML = "";
+    items.forEach(function(it){
+      var li = document.createElement("li");
+      var when = it.diff===1 ? "<strong>Due tomorrow</strong>" : it.diff===7 ? "<strong>Due in 7 days</strong>" : "Due in " + it.diff + " days";
+      li.innerHTML = when + " — " + esc(it.t.name) + " · " + money(it.t.amount) + " on " + fmtDue(it.due);
+      list.appendChild(li);
+      if((it.diff===7 || it.diff===1) && !state.notified[it.key + ":" + it.diff] && "Notification" in window && Notification.permission==="granted"){
+        try{ new Notification("TSC Budgeting Tool — bill reminder", { body: it.t.name + " (" + money(it.t.amount) + ") is due " + (it.diff===1 ? "tomorrow" : "in 7 days") + ", " + fmtDue(it.due) + "." }); }catch(e){}
+        state.notified[it.key + ":" + it.diff] = true; save();
+      }
+    });
+    $("remBox").hidden = items.length===0;
+    var canAsk = "Notification" in window && Notification.permission==="default";
+    $("remNotify").hidden = !canAsk;
   }
 
   function render(){
@@ -732,22 +839,22 @@
     var isCurrent = mk === monthKey(new Date());
     $("monthSub").textContent = isCurrent ? "You are looking at the current month." : "Bills below already carry their due days.";
 
-    /* Income */
+    /* Income — weekly pay counts as 4 checks a month */
     var incList = $("incomeList"); incList.innerHTML = "";
     var totalIncome = 0;
     state.incomes.forEach(function(inc){
-      totalIncome += Number(inc.amount)||0;
+      var weekly = inc.freq==="week";
+      totalIncome += monthlyOf(inc);
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(inc.name) + "</div>" +
-        "<div class=\"row-meta\">" + (inc.primary ? "Primary income" : "Secondary income") + " · per month</div></div>" +
-        "<span class=\"amt\">" + money(inc.amount) + "</span>" +
+        "<div class=\"row-meta\">" + (inc.primary ? "Primary income" : "Secondary income") + (weekly ? " · weekly pay · 4 checks = " + money(monthlyOf(inc)) + " a month" : " · per month") + "</div></div>" +
+        "<span class=\"amt\">" + money(inc.amount) + (weekly ? "/wk" : "") + "</span>" +
         (inc.primary ? "<span class=\"badge primary\">Primary</span>"
                      : "<button class=\"smallbtn\" data-action=\"make-primary\" data-id=\"" + inc.id + "\">Make Primary</button>") +
         "<button class=\"smallbtn danger\" data-action=\"del-income\" data-id=\"" + inc.id + "\" aria-label=\"Remove " + esc(inc.name) + "\">Remove</button>";
       incList.appendChild(li);
     });
     $("incomeEmpty").hidden = state.incomes.length>0;
-    renderSave(totalIncome);
 
     /* Bills this month (from templates) */
     var billList = $("billMonthList"); billList.innerHTML = "";
@@ -780,21 +887,30 @@
     });
     $("billMonthEmpty").hidden = state.templates.length>0;
 
-    /* Weekly savings for all bills this month (monthly ÷ 4) */
+    var saved = savingsFor();
+    renderSave(totalIncome, totalBills);
+
+    /* Weekly savings for all bills this month (monthly ÷ 4) + optional smart set-aside */
     var weeklyTotal = totalBills / 4;
-    $("wkBox").hidden = state.templates.length===0;
-    $("wkTotal").innerHTML = money(weeklyTotal) + "<small>a week</small>";
+    var weeklySave = saved / 4;
+    var useWk = state.showWeekly && saved > 0;
+    $("wkBox").hidden = state.templates.length===0 && !useWk;
+    $("wkTotal").innerHTML = money(weeklyTotal) + "<small>a week for bills</small>";
+    $("wkSmartWrap").hidden = !useWk; $("wkSmart").hidden = !useWk;
+    $("wkSmart").innerHTML = money(weeklySave + weeklyTotal) + "<small>set aside each week</small>";
+    $("wkSmartText").textContent = money(weeklySave) + " savings + " + money(weeklyTotal) + " bills, every week.";
 
     /* Expenses this month */
     var expList = $("expenseList"); expList.innerHTML = "";
     var monthExps = state.expenses.filter(function(x){ return x.month===mk; }).sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
     var td = new Date(); $("expDate").value = isCurrent ? isoDay(td) : isoDay(dueDateFor(viewDate, 1));
-    var totalSpend = 0;
+    var totalSpend = 0, receiptCount = 0;
     monthExps.forEach(function(x){
       totalSpend += Number(x.amount)||0;
+      if(x.receipt) receiptCount++;
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(x.name) + "</div>" +
-        "<div class=\"row-meta\">" + esc(x.cat) + (x.date ? " · " + fmtDue(new Date(x.date + "T00:00:00")) : "") + "</div></div>" +
+        "<div class=\"row-meta\">" + esc(x.cat) + (x.date ? " · " + fmtDue(new Date(x.date + "T00:00:00")) : "") + "</div>" + receiptHtml(x) + "</div>" +
         "<span class=\"amt\">" + money(x.amount) + "</span>" +
         "<button class=\"smallbtn danger\" data-action=\"del-expense\" data-id=\"" + x.id + "\" aria-label=\"Remove " + esc(x.name) + "\">Remove</button>";
       expList.appendChild(li);
@@ -802,8 +918,8 @@
     $("expenseEmpty").hidden = monthExps.length>0;
 
     /* Summary */
-    $("expTotalBadge").textContent = money(totalSpend) + " this month";
-    var saved = savingsFor(totalIncome);
+    $("expTotalBadge").textContent = money(totalSpend) + " this month" + (receiptCount ? " · " + receiptCount + (receiptCount===1 ? " receipt" : " receipts") : "");
+    renderReminders();
     var left = totalIncome - saved - totalBills - totalSpend;
     $("statIncome").textContent = money(totalIncome);
     $("statIncomeSub").textContent = state.incomes.length ? state.incomes.length + (state.incomes.length===1 ? " income source" : " income sources") : "Add income below";

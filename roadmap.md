@@ -7,3 +7,9 @@
 - [x] Weekly savings optional toggle; monthly savings ÷ 4
 - [x] Smart weekly set-aside = weekly savings + weekly bills
 - [x] Weekly pay income: savings % per check, monthly = weeks summed
+- [ ] Finish browser reminders (turn on + test notification)
+- [ ] Finish receipt photo attach (verify upload + view)
+- [ ] Balance accounts (checking/savings, personal/business, EBT separate)
+- [ ] Add income as it arrives (source, amount, date, account, once/repeating)
+- [ ] Weekly income check-in replaces assumed weekly pay
+- [ ] Edit entries: bills, income, spending, payoff owed

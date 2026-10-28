@@ -7,9 +7,9 @@
 - [x] Weekly savings optional toggle; monthly savings ÷ 4
 - [x] Smart weekly set-aside = weekly savings + weekly bills
 - [x] Weekly pay income: savings % per check, monthly = weeks summed
-- [ ] Finish browser reminders (turn on + test notification)
-- [ ] Finish receipt photo attach (verify upload + view)
-- [ ] Balance accounts (checking/savings/cash, personal/business, EBT separate)
-- [ ] Add income as it arrives (source, amount, date, account, once/repeating)
-- [ ] Weekly income check-in replaces assumed weekly pay
-- [ ] Edit entries: bills, income, spending, payoff owed
+- [ ] Multiple balance accounts (name + balance each, shown per account)
+- [ ] Edit button on income and bill entries (name, amount; bill due day)
+
+## Queued for later (Tyler said not in this change)
+- Add income as it arrives, weekly income check-in, browser-notification finishing, receipt-photo changes
+- Safe to spend, Bills rename / per-bill frequency, EBT receipt taker, sign-up/login, bank linking

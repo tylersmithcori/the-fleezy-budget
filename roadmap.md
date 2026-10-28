@@ -7,8 +7,8 @@
 - [x] Weekly savings optional toggle; monthly savings ÷ 4
 - [x] Smart weekly set-aside = weekly savings + weekly bills
 - [x] Weekly pay income: savings % per check, monthly = weeks summed
-- [ ] Multiple balance accounts (name + balance each, shown per account)
-- [ ] Edit button on income and bill entries (name, amount; bill due day)
+- [x] Multiple balance accounts (name + balance each, shown per account)
+- [x] Edit button on income and bill entries (name, amount; bill due day)
 
 ## Queued for later (Tyler said not in this change)
 - Add income as it arrives, weekly income check-in, browser-notification finishing, receipt-photo changes

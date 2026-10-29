@@ -9,7 +9,8 @@
 - [x] Weekly pay income: savings % per check, monthly = weeks summed
 - [x] Multiple balance accounts (name + balance each, shown per account)
 - [x] Edit button on income and bill entries (name, amount; bill due day)
+- [x] Income as it arrives (name, amount, date) + weekly check-in
 
 ## Queued for later (Tyler said not in this change)
-- Add income as it arrives, weekly income check-in, browser-notification finishing, receipt-photo changes
+- browser-notification finishing, receipt-photo changes
 - Safe to spend, Bills rename / per-bill frequency, EBT receipt taker, sign-up/login, bank linking

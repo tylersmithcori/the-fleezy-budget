@@ -388,6 +388,28 @@
           <button class="btn" type="submit">Add income</button>
           <p class="hint">Use your take-home, after tax. Weekly pay counts as 4 checks a month — savings and bill set-asides come from each check.</p>
         </form>
+        <div class="savebox" id="checkinBox">
+          <h4>Weekly check-in</h4>
+          <p id="checkinText">What did you make this week?</p>
+          <form class="form" id="checkinForm">
+            <div class="frow3">
+              <label class="f full">Amount $<input id="ciAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+            </div>
+            <button class="btn" type="submit">Record this week</button>
+          </form>
+        </div>
+        <h4 style="margin:16px 0 6px">Income as it arrives</h4>
+        <ul class="list" id="recvList"></ul>
+        <div class="empty" id="recvEmpty"><strong>Nothing received yet this month</strong>Add each check when it lands in your account.</div>
+        <form class="form" id="recvForm">
+          <div class="frow3">
+            <label class="f full">Name<input id="rcName" type="text" placeholder="e.g. Paycheck" autocomplete="off" required></label>
+            <label class="f">Date<input id="rcDate" type="date" required></label>
+            <label class="f">Amount $<input id="rcAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+          </div>
+          <button class="btn" type="submit">Add income received</button>
+          <p class="hint">Each check is counted on its own as it comes in — never a whole month at once.</p>
+        </form>
       </div>
 
       <!-- Bills this month -->
@@ -600,7 +622,7 @@
 (function(){
   "use strict";
   var KEY = "tsc-budget-v1";
-  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [] };
+  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
   var viewDate = new Date(); viewDate.setDate(1);
 
   function load(){
@@ -619,6 +641,7 @@
         if(typeof p.showWeekly === "boolean") state.showWeekly = p.showWeekly;
         state.notified = p.notified && typeof p.notified === "object" ? p.notified : {};
         state.accounts = Array.isArray(p.accounts) ? p.accounts : [];
+        state.received = Array.isArray(p.received) ? p.received : [];
       }}
     }catch(e){ /* storage unavailable — tool still works for this session */ }
   }
@@ -661,6 +684,27 @@
     if(!name || !(amt>0)) return;
     state.incomes.push({ id: uid(), name: name, amount: amt, freq: freq, primary: state.incomes.length===0 });
     $("incName").value=""; $("incAmt").value="";
+    save(); render();
+  });
+  function isoDay(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+  function weekStart(d){ var x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x; }
+  $("rcDate").value = isoDay(new Date());
+  $("recvForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = $("rcName").value.trim(), amt = parseFloat($("rcAmt").value), date = $("rcDate").value;
+    if(!name || !(amt>0) || !date) return;
+    state.received.push({ id: uid(), name: name, amount: amt, date: date });
+    $("rcName").value=""; $("rcAmt").value=""; $("rcDate").value = isoDay(new Date());
+    save(); render();
+  });
+  $("checkinForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var amt = parseFloat($("ciAmt").value); if(!(amt>=0) || $("ciAmt").value==="") return;
+    var ws = isoDay(weekStart(new Date()));
+    state.received = state.received.filter(function(x){ return x.checkin!==ws; });
+    if(amt>0) state.received.push({ id: uid(), name: "Weekly check-in", amount: amt, date: isoDay(new Date()), checkin: ws });
+    else state.received.push({ id: uid(), name: "Weekly check-in", amount: 0, date: isoDay(new Date()), checkin: ws });
+    $("ciAmt").value="";
     save(); render();
   });
   $("templateForm").addEventListener("submit", function(e){
@@ -732,6 +776,9 @@
     if(action==="del-income"){
       state.incomes = state.incomes.filter(function(x){ return x.id!==id; });
       if(state.incomes.length && !state.incomes.some(function(x){return x.primary;})) state.incomes[0].primary = true;
+    }
+    if(action==="del-recv"){
+      state.received = state.received.filter(function(x){ return x.id!==id; });
     }
     if(action==="make-primary"){
       state.incomes.forEach(function(x){ x.primary = x.id===id; });
@@ -899,6 +946,28 @@
     });
     $("incomeEmpty").hidden = state.incomes.length>0;
 
+    /* Income as it arrives — each check on its own, this month only */
+    var recvList = $("recvList"); recvList.innerHTML = "";
+    var receivedTotal = 0;
+    var monthRecv = state.received.filter(function(x){ return String(x.date).slice(0,7) === isoDay(viewDate).slice(0,7); })
+      .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    monthRecv.forEach(function(x){
+      receivedTotal += Number(x.amount)||0;
+      var dd = new Date(x.date + "T00:00:00");
+      var li = document.createElement("li"); li.className = "row";
+      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(x.name) + "</div>" +
+        "<div class=\"row-meta\">Received " + dd.toLocaleDateString(undefined,{month:"short",day:"numeric"}) + "</div></div>" +
+        "<span class=\"amt\">" + money(x.amount) + "</span>" +
+        "<button class=\"smallbtn danger\" data-action=\"del-recv\" data-id=\"" + x.id + "\" aria-label=\"Remove " + esc(x.name) + "\">Remove</button>";
+      recvList.appendChild(li);
+    });
+    $("recvEmpty").hidden = monthRecv.length>0;
+    var plannedIncome = totalIncome;
+    if(plannedIncome===0) totalIncome = receivedTotal;
+    var wsNow = isoDay(weekStart(new Date()));
+    var ci = state.received.filter(function(x){ return x.checkin===wsNow; })[0];
+    $("checkinText").textContent = ci ? "This week you recorded " + money(ci.amount) + ". Got it — change it below if that is not right." : "What did you make this week?";
+
     /* Bills this month (from templates) */
     var billList = $("billMonthList"); billList.innerHTML = "";
     var totalBills = 0, paidCount = 0, nextDue = null;
@@ -966,7 +1035,7 @@
     renderReminders();
     var left = totalIncome - saved - totalBills - totalSpend;
     $("statIncome").textContent = money(totalIncome);
-    $("statIncomeSub").textContent = state.incomes.length ? state.incomes.length + (state.incomes.length===1 ? " income source" : " income sources") : "Add income below";
+    $("statIncomeSub").textContent = (state.incomes.length ? state.incomes.length + (state.incomes.length===1 ? " income source" : " income sources") : (monthRecv.length ? "From income received" : "Add income below")) + (monthRecv.length && plannedIncome>0 ? " · received so far " + money(receivedTotal) : "");
     $("statBills").textContent = money(totalBills);
     $("statBillsSub").textContent = state.templates.length ? paidCount + " of " + state.templates.length + " marked paid" + (nextDue && isCurrent ? " · next: " + nextDue.name : "") : "Set bills once in Monthly bills";
     $("statSpend").textContent = money(totalSpend);

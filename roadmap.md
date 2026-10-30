@@ -10,7 +10,8 @@
 - [x] Multiple balance accounts (name + balance each, shown per account)
 - [x] Edit button on income and bill entries (name, amount; bill due day)
 - [x] Income as it arrives (name, amount, date) + weekly check-in
+- [x] Browser notification switch (off by default) + receipt photo shown on each purchase
 
 ## Queued for later (Tyler said not in this change)
-- browser-notification finishing, receipt-photo changes
+
 - Safe to spend, Bills rename / per-bill frequency, EBT receipt taker, sign-up/login, bank linking

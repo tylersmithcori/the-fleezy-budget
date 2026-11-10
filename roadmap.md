@@ -12,6 +12,11 @@
 - [x] Income as it arrives (name, amount, date) + weekly check-in
 - [x] Browser notification switch (off by default) + receipt photo shown on each purchase
 
+## Current account connection
+- [ ] Email-only signup, login, logout, and password recovery
+- [ ] Owner-only cloud data and private receipts, separate Personal / Business modes
+- [ ] Explicit confirmed browser import, empty new accounts, security and flow checks
+
 ## Queued for later (Tyler said not in this change)
 
-- Safe to spend, Bills rename / per-bill frequency, EBT receipt taker, sign-up/login, bank linking
+- Safe to spend, Bills rename / per-bill frequency, EBT receipt taker, bank linking

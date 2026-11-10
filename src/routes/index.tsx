@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { BudgetAccount } from '@/components/budget-account';
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,11 +16,5 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return (
-    <iframe
-      src="/budget.html"
-      title="TSC Budgeting Tool"
-      className="fixed inset-0 h-screen w-screen border-0"
-    />
-  );
+  return <BudgetAccount />;
 }

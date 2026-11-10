@@ -260,6 +260,12 @@
   footer a{ color:var(--cobalt); }
   .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   [hidden]{ display:none !important; }
+  .account-controls{border-block:1px solid var(--line);padding:12px 0;margin-bottom:12px;}
+  .account-row{display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin-bottom:8px;}
+  .account-row .f{flex:1;min-width:160px;}
+  .account-row .smallbtn{white-space:normal;height:auto;min-height:40px;max-width:100%;}
+  .account-email{flex:1;overflow-wrap:anywhere;min-width:160px;}
+  .account-import{padding:8px 0;}
 </style>
 </head>
 <body>
@@ -284,6 +290,8 @@
       </div>
     </div>
   </header>
+
+  <div id="accountMount"></div>
 
   <nav class="tabs" role="tablist" aria-label="Tool sections">
     <button class="tab" role="tab" id="tab-budget" aria-selected="true" aria-controls="view-budget" data-view="budget">My budget</button>
@@ -614,7 +622,7 @@
 
   <footer>
     <div><strong style="color:var(--ink)">TSC Budgeting Tool</strong> · by TylerSmithCo · A web version first — the full app comes later, under the same name.</div>
-    <div>Your entries are kept in this browser on this device only — there is no account and nothing is sent to a server. Clearing your browser data will clear them. General education only — not personal financial advice. Questions: <a href="mailto:tylersmithco.ri@gmail.com">tylersmithco.ri@gmail.com</a></div>
+    <div id="storageNotice">Your entries are kept in this browser on this device only. General education only — not personal financial advice. Questions: <a href="mailto:tylersmithco.ri@gmail.com">tylersmithco.ri@gmail.com</a></div>
     <div>© 2026 TylerSmithCo. All rights reserved.</div>
   </footer>
 </div>
@@ -623,10 +631,12 @@
 (function(){
   "use strict";
   var KEY = "tsc-budget-v1";
+  var accountMode = new URLSearchParams(window.location.search).get("account") === "1";
   var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notifyOn: false, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
   var viewDate = new Date(); viewDate.setDate(1);
 
   function load(){
+    if(accountMode) return;
     try{
       var raw = localStorage.getItem(KEY);
       if(raw){ var p = JSON.parse(raw); if(p && typeof p === "object"){
@@ -647,7 +657,10 @@
       }}
     }catch(e){ /* storage unavailable — tool still works for this session */ }
   }
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); return true; }catch(e){ return false; } }
+  function save(){
+    if(accountMode){ if(window.budgetAccount && window.budgetAccount.onSave) window.budgetAccount.onSave(JSON.parse(JSON.stringify(state))); return true; }
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); return true; }catch(e){ return false; }
+  }
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function money(n){ var v = Number(n)||0; return "$" + v.toLocaleString("en-US",{minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits:2}); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -882,7 +895,7 @@
 
   /* Receipt photo on a purchase (shrunk so it fits in this browser's storage) */
   function receiptHtml(x){
-    return x.receipt ? "<div class=\"rcpt\"><a href=\"" + x.receipt + "\" target=\"_blank\" rel=\"noopener\"><img src=\"" + x.receipt + "\" alt=\"Receipt for " + esc(x.name) + "\"></a></div>" : "";
+    return x.receipt ? "<div class=\"rcpt\"><a href=\"" + esc(x.receipt) + "\" target=\"_blank\" rel=\"noopener\"><img src=\"" + esc(x.receipt) + "\" alt=\"Receipt for " + esc(x.name) + "\"></a></div>" : "";
   }
   function readReceipt(input, cb){
     var f = input.files && input.files[0];
@@ -1228,6 +1241,16 @@
     save(); closeEdit(); render();
   });
 
+  if(accountMode){
+    window.budgetAccount = {
+      set: function(value){ state = JSON.parse(JSON.stringify(value)); render(); },
+      lock: function(locked){ ["view-budget","view-bills","editWrap"].forEach(function(id){ $(id).inert = locked; }); if(locked) closeEdit(); },
+      legacy: function(){ try{ var raw=localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }
+    };
+    $("storageNotice").textContent = "Signed-in entries are saved privately to your account. Personal and Business stay separate. General education only — not personal financial advice.";
+    state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 0, showWeekly: false, notifyOn: false, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
+    window.budgetAccount.lock(true);
+  }
   load(); render();
 })();
 </script>

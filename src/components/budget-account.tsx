@@ -22,6 +22,14 @@ export function BudgetAccount() {
   const pending = useRef<Budget | null>(null);
   const bridge = () => (frame.current?.contentWindow as BudgetWindow | null)?.budgetAccount;
   useEffect(() => {
+    const iframe = frame.current;
+    if (!iframe) return;
+    const attach = () => setMount(iframe.contentDocument?.getElementById('accountMount') || null);
+    iframe.addEventListener('load', attach);
+    attach();
+    return () => iframe.removeEventListener('load', attach);
+  }, []);
+  useEffect(() => {
     if (!mount || !ready) return;
     let active = true;
     bridge()?.signedIn(!!user);

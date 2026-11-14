@@ -22,6 +22,6 @@
 - Safe to spend, Bills rename / per-bill frequency, EBT receipt taker, bank linking
 
 ## Current small batch
-- [ ] Rename live app to Fleezy Budget, remove former brand/person wording
-- [ ] Show only sign-in home while logged out; preserve existing account behavior
-- [ ] Park EBT live interface without deleting saved data
+- [x] Rename live app to Fleezy Budget, remove former brand/person wording
+- [x] Show only sign-in home while logged out; preserve existing account behavior
+- [x] Park EBT live interface without deleting saved data

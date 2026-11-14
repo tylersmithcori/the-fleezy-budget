@@ -99,18 +99,18 @@ describe("Pay yourself first", () => {
 });
 
 describe("EBT Benefits", () => {
-  it("tracks benefits separately and never changes income or what's left", () => {
-    const doc = openTool();
-    addIncome(doc, "Job", "1000");
-    const leftBefore = text(doc, "statLeft");
-    el(doc, "ebtAmt").value = "400";
-    fire(doc, doc.getElementById("ebtAmtForm")!, "submit");
-    el(doc, "ebtName").value = "Groceries";
-    el(doc, "ebtExpAmt").value = "120";
-    fire(doc, doc.getElementById("ebtForm")!, "submit");
-    expect(text(doc, "ebtLeft")).toContain("$280");
-    expect(text(doc, "ebtWeekly")).toContain("$100 a week");
-    expect(text(doc, "statIncome")).toBe("$1,000");
-    expect(text(doc, "statLeft")).toBe(leftBefore);
+  it("preserves parked benefits on unrelated saves without counting them as cash", () => {
+    const dom = new JSDOM(html, { url: 'http://localhost/budget.html?account=1', runScripts: 'dangerously', beforeParse(w) { w.scrollTo = () => {}; } });
+    const bridge = (dom.window as unknown as { budgetAccount: { set: (value: unknown) => void; onSave?: (value: { ebtAmt: Record<string, number>; ebtExp: unknown[] }) => void } }).budgetAccount;
+    const month = new Date().toISOString().slice(0, 7);
+    bridge.set({ incomes: [], templates: [], expenses: [], accounts: [], received: [], paid: {}, saveMode: 'pct', saveVal: 0, showWeekly: false, notifyOn: false, notified: {}, ebtAmt: { [month]: 400 }, ebtExp: [{ id: 'parked', amount: 120, month }] });
+    let saved: { ebtAmt: Record<string, number>; ebtExp: unknown[] } | undefined;
+    bridge.onSave = value => { saved = value; };
+    addIncome(dom.window.document, 'Job', '1000');
+    expect(saved?.ebtAmt[month]).toBe(400);
+    expect(saved?.ebtExp).toHaveLength(1);
+    expect(text(dom.window.document, 'statIncome')).toBe('$1,000');
+    expect(text(dom.window.document, 'statLeft')).toBe('$1,000');
+    dom.window.close();
   });
 });

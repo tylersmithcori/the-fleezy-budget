@@ -7,7 +7,7 @@ import { useAccount } from './account-provider';
 import { budgetSchema, emptyBudget, type Budget, type Mode } from '@/lib/budget-data';
 import { loadBudget, saveBudget } from '@/lib/budget-cloud';
 
-type Bridge = { set: (state: Budget) => void; lock: (locked: boolean) => void; onSave?: (state: unknown) => void; legacy: () => unknown };
+type Bridge = { signedIn: (signedIn: boolean) => void; set: (state: Budget) => void; lock: (locked: boolean) => void; onSave?: (state: unknown) => void; legacy: () => unknown };
 type BudgetWindow = Window & { budgetAccount?: Bridge };
 export function BudgetAccount() {
   const { user, ready } = useAccount();
@@ -24,6 +24,7 @@ export function BudgetAccount() {
   useEffect(() => {
     if (!mount || !ready) return;
     let active = true;
+    bridge()?.signedIn(!!user);
     bridge()?.lock(true); bridge()?.set(emptyBudget());
     pending.current = null; setImportChoice(null);
     if (!user) { setMessage(''); return; }
@@ -82,6 +83,7 @@ export function BudgetAccount() {
     if (!pending.current) { localStorage.setItem(`tsc-import-choice:${user.id}`, 'imported'); setImportChoice(null); }
   }
   const controls = <div className="account-controls">
+    {!user && <header className="signin-brand"><div className="mark" aria-hidden="true"><span>F<b>B</b></span></div><h1>Fleezy Budget</h1><p>Keep it Fleezy</p></header>}
     {!ready ? <p>Loading account…</p> : user ? <>
       <div className="account-row"><span className="account-email">{user.email}</span>
         <label className="f">Mode<select aria-label="Budget mode" value={mode} disabled={busy || !!pending.current || !!importChoice} onChange={e => setMode(e.target.value === 'business' ? 'business' : 'personal')}><option value="personal">Personal</option><option value="business">Business</option></select></label>
@@ -89,18 +91,24 @@ export function BudgetAccount() {
       </div>
       {importChoice && <div className="account-import"><p>{importChoice === 'offer' ? 'Import the data from this browser into my account' : 'Confirm import into Personal mode? Business stays empty. Nothing is imported unless you confirm.'}</p>
         <div className="account-row"><Button className="smallbtn" disabled={busy} onClick={() => importChoice === 'offer' ? setImportChoice('confirm') : void importBrowser()}>{importChoice === 'offer' ? 'Import the data from this browser into my account' : 'Confirm import'}</Button><Button className="smallbtn" disabled={busy} onClick={declineImport}>Keep my account empty</Button></div></div>}
-    </> : <form className="account-form" onSubmit={auth}>
-      <div className="account-row"><strong>{authMode === 'signup' ? 'Create account' : authMode === 'forgot' ? 'Reset password' : 'Login'}</strong>
-        <Button type="button" className="smallbtn" onClick={() => { setAuthMode(authMode === 'signup' ? 'login' : 'signup'); setMessage(''); }}>{authMode === 'signup' ? 'Login' : 'Sign up'}</Button>
-        <Button type="button" className="smallbtn" onClick={() => { setAuthMode(authMode === 'forgot' ? 'login' : 'forgot'); setMessage(''); }}>{authMode === 'forgot' ? 'Back to login' : 'Forgot password?'}</Button></div>
-      <div className="account-row"><label className="f">Email<input name="email" type="email" autoComplete="email" required maxLength={255} /></label>
-        {authMode !== 'forgot' && <label className="f">Password<input name="password" type="password" autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} required minLength={6} maxLength={128} /></label>}
-        <Button className="smallbtn" disabled={busy} type="submit">{authMode === 'signup' ? 'Create account' : authMode === 'forgot' ? 'Send reset link' : 'Login'}</Button></div>
-    </form>}
+    </> : <>
+      <div className="signin-actions">
+        <Button type="button" className={`btn${authMode === 'login' ? '' : ' secondary'}`} onClick={() => { setAuthMode('login'); setMessage(''); }}>Log In</Button>
+        <Button type="button" className={`btn${authMode === 'signup' ? '' : ' secondary'}`} onClick={() => { setAuthMode('signup'); setMessage(''); }}>Sign Up</Button>
+      </div>
+      <form className="account-form" onSubmit={auth}>
+        <strong>{authMode === 'signup' ? 'Create account' : authMode === 'forgot' ? 'Reset password' : 'Log In'}</strong>
+        <div className="account-row"><label className="f">Email<input name="email" type="email" autoComplete="email" required maxLength={255} /></label>
+          {authMode !== 'forgot' && <label className="f">Password<input name="password" type="password" autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} required minLength={6} maxLength={128} /></label>}
+          <Button className="btn" disabled={busy} type="submit">{authMode === 'signup' ? 'Create account' : authMode === 'forgot' ? 'Send reset link' : 'Log In'}</Button>
+          <Button type="button" className="smallbtn" onClick={() => { setAuthMode(authMode === 'forgot' ? 'login' : 'forgot'); setMessage(''); }}>{authMode === 'forgot' ? 'Back to login' : 'Forgot password?'}</Button>
+        </div>
+      </form>
+    </>}
     <p role="status" className="hint">{busy ? 'Please wait…' : message}</p>
     {pending.current && !busy && <Button className="smallbtn" onClick={() => void persist(pending.current)}>Retry save</Button>}
   </div>;
-  return <><iframe ref={frame} src="/budget.html?account=1" title="TSC Budgeting Tool" className="fixed inset-0 h-screen w-screen border-0" onLoad={() => setMount(frame.current?.contentDocument?.getElementById('accountMount') || null)} />{mount && createPortal(controls, mount)}</>;
+  return <><iframe ref={frame} src="/budget.html?account=1" title="Fleezy Budget" className="fixed inset-0 h-screen w-screen border-0" onLoad={() => setMount(frame.current?.contentDocument?.getElementById('accountMount') || null)} />{mount && createPortal(controls, mount)}</>;
 }
 
 export function PasswordReset() {
@@ -109,7 +117,7 @@ export function PasswordReset() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery' || recovery) setValid(true); }, [recovery]);
-  return <main className="mx-auto max-w-md px-6 py-12 text-foreground"><h1 className="mb-6 text-2xl font-bold">TSC Budgeting Tool — reset password</h1>
+  return <main className="mx-auto max-w-md px-6 py-12 text-foreground"><h1 className="mb-6 text-2xl font-bold">Fleezy Budget — reset password</h1>
     {valid ? <form className="grid gap-4" onSubmit={async e => {
       e.preventDefault(); setBusy(true);
       const form = e.currentTarget; const data = new FormData(form);

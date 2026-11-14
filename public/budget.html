@@ -4,9 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="light dark" />
-<meta name="description" content="TSC Budgeting Tool by TylerSmithCo — a simple, basic way to watch and manage your own money. Set bills once, they repeat every month. Bank linking coming later for Premium." />
+<meta name="description" content="Fleezy Budget — Keep it Fleezy. A simple way to watch and manage your own money." />
 <link rel="icon" href="data:," />
-<title>TSC Budgeting Tool</title>
+<title>Fleezy Budget</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -266,7 +266,22 @@
   .account-row .smallbtn{white-space:normal;height:auto;min-height:40px;max-width:100%;}
   .account-email{flex:1;overflow-wrap:anywhere;min-width:160px;}
   .account-import{padding:8px 0;}
+  .account-signed-out .wrap > :not(#accountMount), .account-signed-out #editWrap{display:none !important;}
+  .account-signed-out .wrap{max-width:480px;padding-top:64px;}
+  .account-signed-out .account-controls{border:0;margin:0;padding:0;}
+  .signin-brand{display:grid;justify-items:center;text-align:center;gap:14px;margin-bottom:30px;}
+  .signin-brand h1{font-family:"Archivo",sans-serif;font-size:32px;line-height:1.15;margin:0;}
+  .signin-brand p{color:var(--ink-2);margin:0;font-size:18px;}
+  .signin-brand .mark{margin:8px 0;}
+  .signin-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+  .signin-actions .btn{height:52px;}
+  .account-signed-out .account-form{display:grid;gap:16px;}
+  .account-signed-out .account-form .account-row{display:grid;gap:14px;margin:0;}
+  .account-signed-out .account-form .smallbtn{width:100%;min-height:48px;}
+  .account-signed-out .hint{margin-top:16px;}
+
 </style>
+<script>if(new URLSearchParams(location.search).get("account")==="1") document.documentElement.classList.add("account-signed-out");</script>
 </head>
 <body>
 <div class="editwrap" id="editWrap" hidden>
@@ -278,10 +293,10 @@
 <div class="wrap">
 
   <header class="intro">
-    <div class="mark" aria-hidden="true"><span>T<b>S</b>C</span></div>
+    <div class="mark" aria-hidden="true"><span>F<b>B</b></span></div>
     <div>
-      <h1>Watch your money.<br>Keep it simple.</h1>
-      <p>A basic budgeting tool from <strong>TylerSmithCo</strong>. Add your income and your bills once — bills repeat every month with their due day already set. Your money stays in <strong>your own bank account</strong>. This tool never holds or moves it.</p>
+      <h1>Fleezy Budget</h1>
+      <p><strong>Keep it Fleezy.</strong> Add your income and your bills once — bills repeat every month with their due day already set. Your money stays in <strong>your own bank account</strong>. This tool never holds or moves it.</p>
       <div class="pills" aria-label="How this version works">
         <span class="pill blue">Web version — simple &amp; basic</span>
         <span class="pill">No bank login needed</span>
@@ -355,7 +370,7 @@
     <!-- Accounts (balances you track by hand) -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-head">
-        <div><h3>Accounts</h3><p>Name each account and type in its balance. You update it yourself — nothing links to a bank. EBT is never counted here.</p></div>
+        <div><h3>Accounts</h3><p>Name each account and type in its balance. You update it yourself — nothing links to a bank.</p></div>
         <span class="badge" id="acctBadge">$0 total</span>
       </div>
       <div class="acctgrid" id="acctGrid"></div>
@@ -475,38 +490,6 @@
       </form>
     </div>
 
-    <!-- EBT Benefits — separate from income, savings and cash -->
-    <div class="card" style="margin-top:14px" aria-labelledby="ebtHead">
-      <div class="card-head">
-        <div><h3 id="ebtHead">EBT Benefits Total</h3><p>Track Supplemental Nutrition Assistance Program (SNAP) benefits received on your Electronic Benefit Transfer (EBT) card. This balance is kept completely separate — it is never added to your income, savings, or cash totals. Entered by you only; this tool does not connect to any EBT card or benefits account.</p></div>
-        <span class="badge">Separate from cash</span>
-      </div>
-      <div class="ebtstats">
-        <div class="stat"><label>Benefits this month</label><div class="num" id="ebtTotal">$0</div><div class="sub" id="ebtWeekly">$0 a week</div></div>
-        <div class="stat"><label>Spent with EBT</label><div class="num" id="ebtSpent">$0</div><div class="sub">Benefit purchases only</div></div>
-        <div class="stat" id="ebtLeftCard"><label>EBT balance remaining</label><div class="num" id="ebtLeft">$0</div><div class="sub">Benefits minus EBT purchases</div></div>
-      </div>
-      <form class="form" id="ebtAmtForm">
-        <div class="frow">
-          <label class="f">SNAP benefit amount for this month $<input id="ebtAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></label>
-          <button class="btn secondary" type="submit" style="align-self:end">Save</button>
-        </div>
-        <p class="hint">Carries forward to later months until you change it.</p>
-      </form>
-      <div class="card-head" style="padding-top:14px"><div><h3 style="font-size:15px">Weekly pacing</h3><p>Monthly benefits ÷ 4, so they last the whole month.</p></div></div>
-      <ul class="list" id="ebtWeeks"></ul>
-      <div class="card-head" style="padding-top:6px"><div><h3 style="font-size:15px">EBT purchases</h3></div></div>
-      <ul class="list" id="ebtList"></ul>
-      <div class="empty" id="ebtEmpty"><strong>No EBT purchases yet</strong>Add eligible food purchases made with your EBT card.</div>
-      <form class="form" id="ebtForm">
-        <div class="frow3">
-          <label class="f full">What was it?<input id="ebtName" type="text" placeholder="e.g. Groceries" autocomplete="off" required></label>
-          <label class="f">Amount $<input id="ebtExpAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
-          <label class="f">When<input id="ebtDate" type="date" required></label>
-        </div>
-        <button class="btn" type="submit">Add EBT purchase</button>
-      </form>
-    </div>
   </section>
 
   <!-- ============ MONTHLY BILLS ============ -->
@@ -609,7 +592,7 @@
         <li>Everything in Plus</li>
         <li><strong>Bank linking</strong> — connect your own bank through a third-party service (like Plaid) so balances and transactions come in automatically</li>
         <li>Read-only: the tool can see, never move, your money</li>
-        <li>TSC never sees or stores your bank password</li>
+        <li>Fleezy Budget never sees or stores your bank password</li>
       </ul>
     </div>
   </div>
@@ -621,9 +604,9 @@
   </div>
 
   <footer>
-    <div><strong style="color:var(--ink)">TSC Budgeting Tool</strong> · by TylerSmithCo · A web version first — the full app comes later, under the same name.</div>
-    <div id="storageNotice">Your entries are kept in this browser on this device only. General education only — not personal financial advice. Questions: <a href="mailto:tylersmithco.ri@gmail.com">tylersmithco.ri@gmail.com</a></div>
-    <div>© 2026 TylerSmithCo. All rights reserved.</div>
+    <div><strong style="color:var(--ink)">Fleezy Budget</strong></div>
+    <div id="storageNotice">Your entries are kept in this browser on this device only. General education only — not personal financial advice.</div>
+    <div>© 2026 Fleezy Budget. All rights reserved.</div>
   </footer>
 </div>
 
@@ -768,21 +751,6 @@
   $("saveVal").addEventListener("input", function(){
     var v = parseFloat(this.value); state.saveVal = v>0 ? v : 0; save(); render();
   });
-  $("ebtAmtForm").addEventListener("submit", function(e){
-    e.preventDefault();
-    var v = parseFloat($("ebtAmt").value);
-    state.ebtAmt[monthKey(viewDate)] = v>0 ? v : 0;
-    $("ebtAmt").blur(); save(); render();
-  });
-  $("ebtForm").addEventListener("submit", function(e){
-    e.preventDefault();
-    var name = $("ebtName").value.trim(), amt = parseFloat($("ebtExpAmt").value), dv = $("ebtDate").value;
-    if(!name || !(amt>0)) return;
-    state.ebtExp.push({ id: uid(), month: dv ? dv.slice(0,7) : monthKey(viewDate), date: dv, name: name, amount: amt });
-    $("ebtName").value=""; $("ebtExpAmt").value="";
-    save(); render();
-  });
-
   /* Live weekly preview while typing a new bill amount */
   function updateTplWk(){
     var amt = parseFloat($("tplAmt").value), el = $("tplWkHint");
@@ -935,7 +903,7 @@
       li.innerHTML = when + " — " + esc(it.t.name) + " · " + money(it.t.amount) + " on " + fmtDue(it.due);
       list.appendChild(li);
       if((it.diff===7 || it.diff===1) && !state.notified[it.key + ":" + it.diff] && state.notifyOn && "Notification" in window && Notification.permission==="granted"){
-        try{ new Notification("TSC Budgeting Tool — bill reminder", { body: it.t.name + " (" + money(it.t.amount) + ") is due " + (it.diff===1 ? "tomorrow" : "in 7 days") + ", " + fmtDue(it.due) + "." }); }catch(e){}
+        try{ new Notification("Fleezy Budget — bill reminder", { body: it.t.name + " (" + money(it.t.amount) + ") is due " + (it.diff===1 ? "tomorrow" : "in 7 days") + ", " + fmtDue(it.due) + "." }); }catch(e){}
         state.notified[it.key + ":" + it.diff] = true; save();
       }
     });
@@ -1125,59 +1093,10 @@
     $("templateEmpty").hidden = state.templates.length>0;
     $("billsTotalLine").textContent = state.templates.length ? state.templates.length + (state.templates.length===1 ? " bill" : " bills") + " · " + money(tplTotal) + " total per month — save " + money(tplTotal/4) + " a week — repeats automatically." : "No bills yet.";
 
-    renderEbt(mk, isCurrent);
     renderAccounts();
   }
 
-  /* ===== EBT Benefits — kept completely separate from income, savings and cash ===== */
-  function ebtAmountFor(mk){
-    var best = null, amt = 0;
-    Object.keys(state.ebtAmt).forEach(function(k){ if(k<=mk && (best===null || k>best)){ best = k; amt = Number(state.ebtAmt[k])||0; } });
-    return amt;
-  }
-  function renderEbt(mk, isCurrent){
-    var total = ebtAmountFor(mk);
-    var exps = state.ebtExp.filter(function(x){ return x.month===mk; }).sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
-    var spent = 0, weeks = [0,0,0,0];
-    var list = $("ebtList"); list.innerHTML = "";
-    exps.forEach(function(x){
-      var a = Number(x.amount)||0; spent += a;
-      var day = x.date ? parseInt(x.date.slice(8,10),10) : 1;
-      weeks[Math.min(3, Math.floor((day-1)/7))] += a;
-      var li = document.createElement("li"); li.className = "row";
-      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(x.name) + "</div>" +
-        "<div class=\"row-meta\">EBT purchase" + (x.date ? " · " + fmtDue(new Date(x.date + "T00:00:00")) : "") + "</div></div>" +
-        "<span class=\"amt\">" + money(a) + "</span>" +
-        "<button class=\"smallbtn danger\" data-action=\"del-ebt\" data-id=\"" + x.id + "\" aria-label=\"Remove " + esc(x.name) + "\">Remove</button>";
-      list.appendChild(li);
-    });
-    $("ebtEmpty").hidden = exps.length>0;
-    var remaining = total - spent;
-    $("ebtTotal").textContent = money(total);
-    $("ebtSpent").textContent = money(spent);
-    $("ebtLeft").textContent = money(remaining);
-    $("ebtLeftCard").classList.toggle("good", remaining>0);
-    $("ebtLeftCard").classList.toggle("bad", remaining<0);
-    $("ebtWeekly").textContent = money(total/4) + " a week";
-    if(document.activeElement !== $("ebtAmt")) $("ebtAmt").value = total ? total : "";
-    var last = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0).getDate();
-    var mon = viewDate.toLocaleDateString("en-US",{month:"short"});
-    var wl = $("ebtWeeks"); wl.innerHTML = "";
-    var plan = total/4;
-    [[1,7],[8,14],[15,21],[22,last]].forEach(function(r, i){
-      var w = weeks[i], cls = "due" + (total>0 ? (w>plan ? " overdue" : " paid") : "");
-      var li = document.createElement("li"); li.className = "row";
-      li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">Week " + (i+1) + "</div>" +
-        "<div class=\"row-meta\">" + mon + " " + r[0] + "–" + r[1] + " · pace " + money(plan) + "</div></div>" +
-        "<span class=\"" + cls + "\">" + (total>0 ? (w>plan ? "Over by " + money(w-plan) : money(plan-w) + " under pace") : "Set amount") + "</span>" +
-        "<span class=\"amt\">" + money(w) + " spent</span>";
-      wl.appendChild(li);
-    });
-    var td = new Date(); $("ebtDate").value = isCurrent ? isoDay(td) : isoDay(dueDateFor(viewDate, 1));
-  }
-
-
-  /* ===== Accounts — each with its own balance, entered by hand. EBT is never part of these. ===== */
+  /* ===== Accounts — each with its own balance, entered by hand. ===== */
   var KINDS = { checking: "Checking", savings: "Savings", cash: "Cash" };
   function kindOf(v){ return KINDS[v] ? v : "checking"; }
   function renderAccounts(){
@@ -1243,6 +1162,7 @@
 
   if(accountMode){
     window.budgetAccount = {
+      signedIn: function(signedIn){ document.documentElement.classList.toggle("account-signed-out", !signedIn); if(signedIn) show("budget"); },
       set: function(value){ state = JSON.parse(JSON.stringify(value)); render(); },
       lock: function(locked){ ["view-budget","view-bills","editWrap"].forEach(function(id){ $(id).inert = locked; }); if(locked) closeEdit(); },
       legacy: function(){ try{ var raw=localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }

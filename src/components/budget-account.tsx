@@ -91,7 +91,7 @@ export function BudgetAccount() {
     if (!pending.current) { localStorage.setItem(`tsc-import-choice:${user.id}`, 'imported'); setImportChoice(null); }
   }
   const controls = <div className="account-controls">
-    {!user && <header className="signin-brand"><div className="mark" aria-hidden="true"><span>F<b>B</b></span></div><h1>Fleezy Budget</h1><p>Keep it Fleezy</p></header>}
+    {!user && <header className="signin-brand"><div className="mark" aria-hidden="true"><img src="/fleezy-mark.svg" alt="" /></div><h1>Fleezy Budget</h1><p>Keep it Fleezy</p></header>}
     {!ready ? <p>Loading account…</p> : user ? <>
       <div className="account-row"><span className="account-email">{user.email}</span>
         <label className="f">Mode<select aria-label="Budget mode" value={mode} disabled={busy || !!pending.current || !!importChoice} onChange={e => setMode(e.target.value === 'business' ? 'business' : 'personal')}><option value="personal">Personal</option><option value="business">Business</option></select></label>

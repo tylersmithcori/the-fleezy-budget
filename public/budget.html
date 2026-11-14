@@ -64,22 +64,28 @@
   @media(min-width:720px){ .wrap{ padding:32px 24px 80px } }
 
   /* Intro */
-  .intro{ display:flex; gap:16px; align-items:flex-start; margin-bottom:18px; }
-  .mark{
-    flex:0 0 auto; width:46px; height:46px; background:var(--cobalt);
-    transform:rotate(45deg); border-radius:9px; display:grid; place-items:center; margin-top:4px;
+  .intro{
+    display:flex; gap:16px; align-items:flex-start; margin-bottom:18px;
+    background:#05070c; border:1px solid #1d2b47; border-radius:var(--radius);
+    padding:18px 16px; box-shadow:var(--shadow);
   }
-  .mark span{ transform:rotate(-45deg); color:#fff; font-family:"Archivo",sans-serif; font-weight:800; font-size:13px; letter-spacing:.02em; }
-  .mark span b{ color:#101828; }
-  @media (prefers-color-scheme: dark){ .mark span b{ color:#0c1220 } }
-  .intro h1{ font-family:"Archivo",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.02em; margin:0 0 6px; font-weight:800; }
+  @media(min-width:720px){ .intro{ padding:22px 24px } }
+  .mark{
+    flex:0 0 auto; width:46px; height:46px; background:#05070c; border-radius:12px;
+    overflow:hidden; box-shadow:0 0 0 1px rgba(198,245,66,.45), 0 8px 22px rgba(0,0,0,.28);
+  }
+  .mark img{ display:block; width:100%; height:100%; }
+  .intro h1{ font-family:"Archivo",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.02em; margin:0 0 6px; font-weight:800;
+    color:#c6f542; background:linear-gradient(90deg,#c6f542,#22d3ee); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   @media(min-width:720px){ .intro h1{ font-size:36px } }
-  .intro p{ margin:0; color:var(--ink-2); max-width:62ch; font-size:15.5px; }
-  .intro p strong{ color:var(--ink); }
+  .intro p{ margin:0; color:#c3cfe4; max-width:62ch; font-size:15.5px; }
+  .intro p strong{ color:#fff; }
   .pills{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
   .pill{ font-size:12.5px; font-weight:600; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink-2); }
   .pill.blue{ background:var(--cobalt-soft); border-color:transparent; color:var(--cobalt-dark); }
   @media (prefers-color-scheme: dark){ .pill.blue{ color:#c7d9fb } }
+  .intro .pill{ background:rgba(255,255,255,.05); border-color:#22314f; color:#c3cfe4; }
+  .intro .pill.blue{ background:rgba(34,211,238,.13); border-color:rgba(34,211,238,.45); color:#7fe6f7; }
 
   /* Tabs */
   .tabs{ display:flex; flex-wrap:wrap; gap:6px; background:var(--surface); border:1px solid var(--line); padding:5px; border-radius:10px; box-shadow:var(--shadow); margin:18px 0 18px; }
@@ -267,18 +273,28 @@
   .account-email{flex:1;overflow-wrap:anywhere;min-width:160px;}
   .account-import{padding:8px 0;}
   .account-signed-out .wrap > :not(#accountMount), .account-signed-out #editWrap{display:none !important;}
+  .account-signed-out body{background:#05070c;color:#e8edf6;}
   .account-signed-out .wrap{max-width:480px;padding-top:64px;}
-  .account-signed-out .account-controls{border:0;margin:0;padding:0;}
+  .account-signed-out .account-controls{margin:0;padding:26px 22px;background:#0a0f1a;border:1px solid #1d2b47;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5);}
   .signin-brand{display:grid;justify-items:center;text-align:center;gap:14px;margin-bottom:30px;}
-  .signin-brand h1{font-family:"Archivo",sans-serif;font-size:32px;line-height:1.15;margin:0;}
-  .signin-brand p{color:var(--ink-2);margin:0;font-size:18px;}
-  .signin-brand .mark{margin:8px 0;}
+  .signin-brand h1{font-family:"Archivo",sans-serif;font-size:32px;line-height:1.15;margin:0;font-weight:800;
+    color:#c6f542;background:linear-gradient(90deg,#c6f542,#22d3ee);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .signin-brand p{color:#c6f542;margin:0;font-size:18px;font-weight:600;}
+  .signin-brand .mark{margin:8px 0;width:76px;height:76px;border-radius:18px;}
   .signin-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
   .signin-actions .btn{height:52px;}
   .account-signed-out .account-form{display:grid;gap:16px;}
   .account-signed-out .account-form .account-row{display:grid;gap:14px;margin:0;}
   .account-signed-out .account-form .smallbtn{width:100%;min-height:48px;}
-  .account-signed-out .hint{margin-top:16px;}
+  .account-signed-out .hint{margin-top:16px;color:#93a6c6;}
+  .account-signed-out label.f{color:#9fb0cc;}
+  .account-signed-out input{background:#0b1322;border-color:#22314f;color:#e8edf6;}
+  .account-signed-out input:focus-visible, .account-signed-out button:focus-visible{outline-color:#c6f542;}
+  .account-signed-out .account-form{background:transparent;border-top-color:#1d2b47;}
+  .account-signed-out .btn{background:#c6f542;color:#05070c;}
+  .account-signed-out .btn:active{background:#a8dc2f;}
+  .account-signed-out .btn.secondary{background:transparent;color:#7fe6f7;border:1px solid rgba(34,211,238,.5);}
+  .account-signed-out .smallbtn{background:transparent;border-color:#22314f;color:#c3cfe4;}
 
 </style>
 <script>if(new URLSearchParams(location.search).get("account")==="1") document.documentElement.classList.add("account-signed-out");</script>
@@ -293,7 +309,7 @@
 <div class="wrap">
 
   <header class="intro">
-    <div class="mark" aria-hidden="true"><span>F<b>B</b></span></div>
+    <div class="mark" aria-hidden="true"><img src="/fleezy-mark.svg" alt="" /></div>
     <div>
       <h1>Fleezy Budget</h1>
       <p><strong>Keep it Fleezy.</strong> Add your income and your bills once — bills repeat every month with their due day already set. Your money stays in <strong>your own bank account</strong>. This tool never holds or moves it.</p>

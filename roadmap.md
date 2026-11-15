@@ -25,3 +25,4 @@
 - [x] Rename live app to Fleezy Budget, remove former brand/person wording
 - [x] Show only sign-in home while logged out; preserve existing account behavior
 - [x] Park EBT live interface without deleting saved data
+- [x] Fix receipt photo picker in Spending not in the budget: opens picker, shows name + preview, stays with purchase

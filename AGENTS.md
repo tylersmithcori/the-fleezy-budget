@@ -16,3 +16,4 @@
 
 - The iframe bridge controls signed-out visibility before account content is shown; keep the auth home in the existing portal to preserve budget styling and account lifecycle.
 - Parked benefit data remains in the existing state and cloud mapping while its interface is removed, so unrelated saves do not delete it.
+- Shared logo artwork is stored through a CDN asset pointer and referenced by both the account portal and static budget page; the favicon is an unchanged public file so the supplied artwork remains exact.

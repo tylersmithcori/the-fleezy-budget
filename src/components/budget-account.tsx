@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAccount } from './account-provider';
 import { budgetSchema, emptyBudget, type Budget, type Mode } from '@/lib/budget-data';
 import { loadBudget, saveBudget } from '@/lib/budget-cloud';
+import logoAsset from '@/assets/fleezy-budget-logo-final.webp.asset.json';
 
 type Bridge = { signedIn: (signedIn: boolean) => void; set: (state: Budget) => void; lock: (locked: boolean) => void; onSave?: (state: unknown) => void; legacy: () => unknown };
 type BudgetWindow = Window & { budgetAccount?: Bridge };
@@ -91,7 +92,7 @@ export function BudgetAccount() {
     if (!pending.current) { localStorage.setItem(`tsc-import-choice:${user.id}`, 'imported'); setImportChoice(null); }
   }
   const controls = <div className="account-controls">
-    {!user && <header className="signin-brand"><div className="mark" aria-hidden="true"><img src="/fleezy-mark.svg" alt="" /></div><h1>Fleezy Budget</h1><p>Keep it Fleezy</p></header>}
+    {!user && <header className="signin-brand"><div className="mark" aria-hidden="true"><img src={logoAsset.url} alt="" /></div><h1>Fleezy Budget</h1><p>Keep it Fleezy</p></header>}
     {!ready ? <p>Loading account…</p> : user ? <>
       <div className="account-row"><span className="account-email">{user.email}</span>
         <label className="f">Mode<select aria-label="Budget mode" value={mode} disabled={busy || !!pending.current || !!importChoice} onChange={e => setMode(e.target.value === 'business' ? 'business' : 'personal')}><option value="personal">Personal</option><option value="business">Business</option></select></label>

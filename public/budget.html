@@ -248,7 +248,6 @@
 
   /* Plans */
   .plans{ display:grid; gap:10px; }
-  @media(min-width:720px){ .plans{ grid-template-columns:repeat(3,1fr); } }
   .plan{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; }
   .plan.featured{ border-color:var(--cobalt); border-width:2px; }
   .plan h3{ margin:0; font-family:"Archivo",sans-serif; font-size:17px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -317,7 +316,6 @@
         <span class="pill blue">Web version — simple &amp; basic</span>
         <span class="pill">No bank login needed</span>
         <span class="pill">Bills set once, repeat monthly</span>
-        <span class="pill">Bank linking: Premium, coming later</span>
       </div>
     </div>
   </header>
@@ -581,8 +579,8 @@
   </section>
 
   <!-- ============ PLANS / WHAT'S NEXT ============ -->
-  <h3 class="section-title">Plans — kept basic and affordable on purpose</h3>
-  <p class="section-sub">Why we charge at all: the point is to help people with money. There are very few truly free budgeting apps. This one stays basic and affordable on purpose, and the paid tiers are priced just high enough to fund the workshops.</p>
+  <h3 class="section-title">Free plan</h3>
+  <p class="section-sub">This is the only plan. Everything in Fleezy Budget is included.</p>
   <div class="plans">
     <div class="plan">
       <h3>Free <span class="tag now">Live now</span></h3>
@@ -594,31 +592,11 @@
         <li>All Learn money basics lessons</li>
       </ul>
     </div>
-    <div class="plan">
-      <h3>Plus <span class="tag">Coming later</span></h3>
-      <div class="price">$2 <small>/ month</small></div>
-      <ul>
-        <li>Everything in Free</li>
-        <li>Extra budget views and reminders</li>
-        <li>Helps fund the free workshops</li>
-      </ul>
-    </div>
-    <div class="plan featured">
-      <h3>Premium <span class="tag">Coming later</span></h3>
-      <div class="price">$5 <small>/ month</small></div>
-      <ul>
-        <li>Everything in Plus</li>
-        <li><strong>Bank linking</strong> — connect your own bank through a third-party service (like Plaid) so balances and transactions come in automatically</li>
-        <li>Read-only: the tool can see, never move, your money</li>
-        <li>Fleezy Budget never sees or stores your bank password</li>
-      </ul>
-    </div>
   </div>
 
   <div class="notebox" style="margin-top:12px">
-    <h3>About bank linking — later date, Premium only</h3>
-    <p>Bank linking is <strong>not in this launch version</strong>. For now you type your numbers in by hand and your money stays entirely in your own bank account — nothing is held, loaded, or paid out by this tool.</p>
-    <p>When it arrives, it will be a Premium feature added at a later date, using a third-party linking service. Set-aside amounts for bills will show inside the tool as a plan — your own bank still does the actual paying on the due date.</p>
+    <h3>About bank linking</h3>
+    <p>Bank linking is <strong>not in this version</strong>. You type your numbers in by hand and your money stays entirely in your own bank account — nothing is held, loaded, or paid out by this tool.</p>
   </div>
 
   <footer>

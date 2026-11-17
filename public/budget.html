@@ -402,11 +402,11 @@
         <form class="form" id="incomeForm">
           <div class="frow3">
             <label class="f full">Name<input id="incName" type="text" placeholder="e.g. Main job" autocomplete="off" required></label>
-            <label class="f">How often<select id="incFreq"><option value="month">Per month</option><option value="week">Per week</option></select></label>
+            <label class="f">How often<select id="incFreq"><option value="month">Per month</option><option value="week">Per week</option><option value="biweek">Every 2 weeks (bi-weekly)</option></select></label>
             <label class="f">Amount $<input id="incAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
           </div>
           <button class="btn" type="submit">Add income</button>
-          <p class="hint">Use your take-home, after tax. Weekly pay counts as 4 checks a month — savings and bill set-asides come from each check.</p>
+          <p class="hint">Use your take-home, after tax. Weekly pay counts as 4 checks a month, bi-weekly pay as 2 — savings and bill set-asides come from each check.</p>
         </form>
         <div class="savebox" id="checkinBox">
           <h4>Weekly check-in</h4>
@@ -505,9 +505,11 @@
       <form class="form" id="templateForm">
         <div class="frow3">
           <label class="f full">Bill name<input id="tplName" type="text" placeholder="e.g. Rent" autocomplete="off" required></label>
-          <label class="f">Due day
+          <label class="f">How often<select id="tplFreq"><option value="month">Monthly</option><option value="biweek">Every 2 weeks (bi-weekly)</option></select></label>
+          <label class="f" id="tplDayWrap">Due day
             <select id="tplDay"></select>
           </label>
+          <label class="f" id="tplStartWrap" hidden>Next due date<input id="tplStart" type="date"></label>
           <label class="f">Amount $<input id="tplAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
         </div>
         <p class="hint" id="tplWkHint">Type an amount to see what to set aside each week.</p>
@@ -656,12 +658,24 @@
   /* Forms */
   $("incomeForm").addEventListener("submit", function(e){
     e.preventDefault();
-    var name = $("incName").value.trim(), amt = parseFloat($("incAmt").value), freq = $("incFreq").value==="week" ? "week" : "month";
+    var name = $("incName").value.trim(), amt = parseFloat($("incAmt").value), freq = $("incFreq").value==="week" ? "week" : $("incFreq").value==="biweek" ? "biweek" : "month";
     if(!name || !(amt>0)) return;
     state.incomes.push({ id: uid(), name: name, amount: amt, freq: freq, primary: state.incomes.length===0 });
     $("incName").value=""; $("incAmt").value="";
     save(); render();
   });
+  /* Bill cycles: monthly bills fall once on their due day; bi-weekly bills every 14 days from their date */
+  function isBiw(t){ return t.freq==="biweek" && /^\d{4}-\d{2}-\d{2}$/.test(String(t.start||"")); }
+  function occurrences(t, m){
+    if(!isBiw(t)) return [dueDateFor(m, t.dueDay)];
+    var a = new Date(t.start + "T00:00:00"), first = new Date(m.getFullYear(), m.getMonth(), 1), next = new Date(m.getFullYear(), m.getMonth()+1, 1);
+    var k = Math.ceil(Math.round((first - a)/86400000) / 14), out = [];
+    for(var d = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 14*k); d < next; d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+14)) if(d >= first) out.push(d);
+    return out;
+  }
+  function paidKey(t, m, due){ return monthKey(m) + ":" + t.id + (isBiw(t) ? "~" + isoDay(due) : ""); }
+  function weeklyOfBill(t){ return (Number(t.amount)||0) / (isBiw(t) ? 2 : 4); }
+  function monthAmt(t, m){ return (Number(t.amount)||0) * occurrences(t, m).length; }
   function isoDay(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
   function weekStart(d){ var x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x; }
   $("rcDate").value = isoDay(new Date());
@@ -686,12 +700,14 @@
   $("templateForm").addEventListener("submit", function(e){
     e.preventDefault();
     var name = $("tplName").value.trim(), amt = parseFloat($("tplAmt").value), day = parseInt($("tplDay").value,10);
-    var owed = parseFloat($("tplOwed").value);
+    var owed = parseFloat($("tplOwed").value), biw = $("tplFreq").value==="biweek", st = $("tplStart").value;
+    if(biw){ if(!/^\d{4}-\d{2}-\d{2}$/.test(st)) { $("tplStart").focus(); return; } day = new Date(st + "T00:00:00").getDate(); }
     if(!name || !(amt>0) || !(day>=1 && day<=31)) return;
     var t = { id: uid(), name: name, amount: amt, dueDay: day };
+    if(biw){ t.freq = "biweek"; t.start = st; }
     if(owed>0) t.owed = owed;
     state.templates.push(t);
-    $("tplName").value=""; $("tplAmt").value=""; $("tplOwed").value=""; updateTplWk();
+    $("tplName").value=""; $("tplAmt").value=""; $("tplOwed").value=""; $("tplStart").value=""; updateTplWk();
     save(); render();
   });
   $("expenseForm").addEventListener("submit", function(e){
@@ -733,12 +749,13 @@
   });
   /* Live weekly preview while typing a new bill amount */
   function updateTplWk(){
-    var amt = parseFloat($("tplAmt").value), el = $("tplWkHint");
+    var amt = parseFloat($("tplAmt").value), el = $("tplWkHint"), biw = $("tplFreq").value==="biweek";
+    $("tplDayWrap").hidden = biw; $("tplStartWrap").hidden = !biw; $("tplStart").required = biw;
     el.innerHTML = amt>0
-      ? "That is <span class=\"wkprev\">" + money(amt/4) + " a week</span> to set aside for this bill (monthly ÷ 4)."
+      ? (biw ? "That is <span class=\"wkprev\">" + money(amt/2) + " a week</span> to set aside for this bill (every 2 weeks ÷ 2)." : "That is <span class=\"wkprev\">" + money(amt/4) + " a week</span> to set aside for this bill (monthly ÷ 4).")
       : "Type an amount to see what to set aside each week.";
   }
-  $("tplAmt").addEventListener("input", updateTplWk);
+  $("tplAmt").addEventListener("input", updateTplWk); $("tplFreq").addEventListener("change", updateTplWk);
 
   /* Delegated actions */
   document.addEventListener("click", function(e){
@@ -784,7 +801,7 @@
   });
   document.addEventListener("change", function(e){
     var b = e.target; if(!b.matches || !b.matches("input[data-action=toggle-paid]")) return;
-    var k = monthKey(viewDate) + ":" + b.getAttribute("data-id");
+    var k = b.getAttribute("data-key") || (monthKey(viewDate) + ":" + b.getAttribute("data-id"));
     if(b.checked) state.paid[k] = true; else delete state.paid[k];
     save(); render();
   });
@@ -799,7 +816,7 @@
   }
 
   /* Weekly pay = 4 checks a month; monthly totals add up from the weeks */
-  function checksOf(inc){ return inc.freq==="week" ? 4 : 1; }
+  function checksOf(inc){ return inc.freq==="week" ? 4 : inc.freq==="biweek" ? 2 : 1; }
   function monthlyOf(inc){ return (Number(inc.amount)||0) * checksOf(inc); }
   /* Savings off one check */
   function saveFromCheck(inc){
@@ -814,7 +831,7 @@
   function owedLeft(t, mk){
     if(!(Number(t.owed)>0)) return null;
     var n = 0;
-    Object.keys(state.paid).forEach(function(k){ var i = k.indexOf(":"); if(k.slice(i+1)===t.id && k.slice(0,i)<=mk) n++; });
+    Object.keys(state.paid).forEach(function(k){ var i = k.indexOf(":"); if(k.slice(i+1).split("~")[0]===t.id && k.slice(0,i)<=mk) n++; });
     return Math.max(0, Number(t.owed) - n * (Number(t.amount)||0));
   }
   function renderSave(totalIncome, totalBills){
@@ -833,8 +850,8 @@
     if(state.showWeekly) html += " That is <span class=\"big\">" + money(perMonth/4) + " a week</span> (monthly ÷ 4).";
     /* Per-check plan for weekly pay */
     state.incomes.forEach(function(inc){
-      if(inc.freq!=="week") return;
-      var billShare = totalIncome>0 ? (totalBills/4) * (Number(inc.amount)||0) / (totalIncome/4) : 0;
+      if(inc.freq!=="week" && inc.freq!=="biweek") return;
+      var billShare = totalIncome>0 ? totalBills * (Number(inc.amount)||0) / totalIncome : 0;
       var sv = saveFromCheck(inc);
       html += "<br>From each " + money(inc.amount) + " " + esc(inc.name) + " check: <span class=\"big\">" + money(sv) + "</span> to savings + <span class=\"big\">" + money(billShare) + "</span> for bills — " + money(Math.max(0, inc.amount - sv - billShare)) + " left to spend.";
     });
@@ -871,8 +888,10 @@
     [0,1].forEach(function(off){
       var m = new Date(today.getFullYear(), today.getMonth()+off, 1), mkey = monthKey(m);
       state.templates.forEach(function(t){
-        var due = dueDateFor(m, t.dueDay), diff = Math.round((due - today)/86400000);
-        if(diff>=1 && diff<=7 && !state.paid[mkey + ":" + t.id]) items.push({ t: t, due: due, diff: diff, key: mkey + ":" + t.id });
+        occurrences(t, m).forEach(function(due){
+          var diff = Math.round((due - today)/86400000), key = paidKey(t, m, due);
+          if(diff>=1 && diff<=7 && !state.paid[key]) items.push({ t: t, due: due, diff: diff, key: key });
+        });
       });
     });
     items.sort(function(a,b){ return a.diff - b.diff; });
@@ -907,12 +926,12 @@
     var incList = $("incomeList"); incList.innerHTML = "";
     var totalIncome = 0;
     state.incomes.forEach(function(inc){
-      var weekly = inc.freq==="week";
+      var weekly = inc.freq==="week", biw = inc.freq==="biweek";
       totalIncome += monthlyOf(inc);
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(inc.name) + "</div>" +
-        "<div class=\"row-meta\">" + (inc.primary ? "Primary income" : "Secondary income") + (weekly ? " · weekly pay · 4 checks = " + money(monthlyOf(inc)) + " a month" : " · per month") + "</div></div>" +
-        "<span class=\"amt\">" + money(inc.amount) + (weekly ? "/wk" : "") + "</span>" +
+        "<div class=\"row-meta\">" + (inc.primary ? "Primary income" : "Secondary income") + (weekly ? " · weekly pay · 4 checks = " + money(monthlyOf(inc)) + " a month" : biw ? " · bi-weekly pay (every 2 weeks) · 2 checks = " + money(monthlyOf(inc)) + " a month" : " · per month") + "</div></div>" +
+        "<span class=\"amt\">" + money(inc.amount) + (weekly ? "/wk" : biw ? "/2wk" : "") + "</span>" +
         (inc.primary ? "<span class=\"badge primary\">Primary</span>"
                      : "<button class=\"smallbtn\" data-action=\"make-primary\" data-id=\"" + inc.id + "\">Make Primary</button>") +
         "<button class=\"smallbtn\" data-action=\"edit\" data-kind=\"income\" data-id=\"" + inc.id + "\" aria-label=\"Edit " + esc(inc.name) + "\">Edit</button>" +
@@ -946,11 +965,13 @@
     /* Bills this month (from templates) */
     var billList = $("billMonthList"); billList.innerHTML = "";
     var totalBills = 0, paidCount = 0, nextDue = null;
-    var sorted = state.templates.slice().sort(function(a,b){ return a.dueDay - b.dueDay; });
-    sorted.forEach(function(t){
+    var occ = [];
+    state.templates.forEach(function(t){ occurrences(t, viewDate).forEach(function(d){ occ.push({ t: t, due: d }); }); });
+    occ.sort(function(a,b){ return a.due - b.due; });
+    occ.forEach(function(o){
+      var t = o.t, due = o.due, pk = paidKey(t, viewDate, due), biw = isBiw(t);
       totalBills += Number(t.amount)||0;
-      var due = dueDateFor(viewDate, t.dueDay);
-      var isPaid = !!state.paid[mk + ":" + t.id];
+      var isPaid = !!state.paid[pk];
       if(isPaid) paidCount++;
       var cls = "due", label = "Due " + fmtDue(due);
       if(isPaid){ cls += " paid"; label = "Paid · " + fmtDue(due); }
@@ -963,11 +984,11 @@
       }
       var ol = owedLeft(t, mk);
       var li = document.createElement("li"); li.className = "row";
-      li.innerHTML = "<input type=\"checkbox\" style=\"width:22px;height:22px;flex:0 0 auto;cursor:pointer\" data-action=\"toggle-paid\" data-id=\"" + t.id + "\"" + (isPaid ? " checked" : "") + " aria-label=\"" + esc(t.name) + " paid this month\">" +
+      li.innerHTML = "<input type=\"checkbox\" style=\"width:22px;height:22px;flex:0 0 auto;cursor:pointer\" data-action=\"toggle-paid\" data-id=\"" + t.id + "\" data-key=\"" + pk + "\"" + (isPaid ? " checked" : "") + " aria-label=\"" + esc(t.name) + (biw ? " paid for " + fmtDue(due) : " paid this month") + "\">" +
         "<div class=\"row-main\"><div class=\"row-name\"" + (isPaid ? " style=\"text-decoration:line-through;opacity:.65\"" : "") + ">" + esc(t.name) + "</div>" +
-        "<div class=\"row-meta\">" + (isPaid ? "Paid for this month" : "Not paid yet") + " · due " + fmtDue(due) + (ol!==null ? " · Payoff bill" : "") + "</div></div>" +
+        "<div class=\"row-meta\">" + (isPaid ? (biw ? "Paid" : "Paid for this month") : "Not paid yet") + " · due " + fmtDue(due) + (biw ? " · every 2 weeks" : "") + (ol!==null ? " · Payoff bill" : "") + "</div></div>" +
         "<span class=\"" + cls + "\">" + label + "</span>" +
-        "<span class=\"wk\">" + money((Number(t.amount)||0)/4) + "/wk</span>" +
+        "<span class=\"wk\">" + money(weeklyOfBill(t)) + "/wk</span>" +
         (ol!==null ? "<span class=\"owed\">" + money(ol) + " owed</span>" : "") +
         "<span class=\"amt\">" + money(t.amount) + "</span>" +
         "<button class=\"smallbtn\" data-action=\"edit\" data-kind=\"bill\" data-id=\"" + t.id + "\" aria-label=\"Edit " + esc(t.name) + "\">Edit</button>";
@@ -979,7 +1000,7 @@
     renderSave(totalIncome, totalBills);
 
     /* Weekly savings for all bills this month (monthly ÷ 4) + optional smart set-aside */
-    var weeklyTotal = totalBills / 4;
+    var weeklyTotal = state.templates.reduce(function(s, t){ return s + weeklyOfBill(t); }, 0);
     var weeklySave = saved / 4;
     var useWk = state.showWeekly && saved > 0;
     $("wkBox").hidden = state.templates.length===0 && !useWk;
@@ -1012,7 +1033,7 @@
     $("statIncome").textContent = money(totalIncome);
     $("statIncomeSub").textContent = (state.incomes.length ? state.incomes.length + (state.incomes.length===1 ? " income source" : " income sources") : (monthRecv.length ? "From income received" : "Add income below")) + (monthRecv.length && plannedIncome>0 ? " · received so far " + money(receivedTotal) : "");
     $("statBills").textContent = money(totalBills);
-    $("statBillsSub").textContent = state.templates.length ? paidCount + " of " + state.templates.length + " marked paid" + (nextDue && isCurrent ? " · next: " + nextDue.name : "") : "Set bills once in Monthly bills";
+    $("statBillsSub").textContent = state.templates.length ? paidCount + " of " + occ.length + " marked paid" + (nextDue && isCurrent ? " · next: " + nextDue.name : "") : "Set bills once in Monthly bills";
     $("statSpend").textContent = money(totalSpend);
     $("statLeft").textContent = money(left);
     var card = $("statLeftCard");
@@ -1030,12 +1051,12 @@
     prow("Income", "Everything you make this month", "", money(totalIncome));
     prow("1st · Savings", state.saveMode==="amt" ? money(state.saveVal) + " each time income comes in" : (state.saveVal||0) + "% of what you make", "<span class=\"due paid\">Off the top</span>", "−" + money(saved));
     state.templates.forEach(function(t, i){
-      var a = Number(t.amount)||0, badge;
+      var a = monthAmt(t, viewDate), badge;
       if(running >= a){ badge = "<span class=\"due paid\">Covered</span>"; }
       else if(running > 0){ badge = "<span class=\"due soon\">Short " + money(a - running) + "</span>"; }
       else { badge = "<span class=\"due overdue\">Not covered</span>"; }
       running -= a;
-      prow("#" + (i+1) + " · " + esc(t.name), "Priority " + (i+1) + " · due " + fmtDue(dueDateFor(viewDate, t.dueDay)), badge, "−" + money(a));
+      prow("#" + (i+1) + " · " + esc(t.name), "Priority " + (i+1) + " · due " + occurrences(t, viewDate).map(fmtDue).join(", "), badge, "−" + money(a));
     });
     var spendMoney = totalIncome - saved - totalBills;
     $("prioSpend").textContent = money(spendMoney);
@@ -1044,7 +1065,7 @@
 
     /* Payoff bills — combined */
     var payMonthly = 0, payOwed = 0, payCount = 0;
-    state.templates.forEach(function(t){ var ol = owedLeft(t, mk); if(ol!==null){ payCount++; payMonthly += Number(t.amount)||0; payOwed += ol; } });
+    state.templates.forEach(function(t){ var ol = owedLeft(t, mk); if(ol!==null){ payCount++; payMonthly += monthAmt(t, viewDate); payOwed += ol; } });
     $("payBox").hidden = payCount===0;
     $("payMonthly").innerHTML = money(payMonthly) + "<small>payments a month</small>";
     $("payOwed").innerHTML = money(payOwed) + "<small>total still owed</small>";
@@ -1054,14 +1075,15 @@
     var tplList = $("templateList"); tplList.innerHTML = "";
     var tplTotal = 0, nT = state.templates.length;
     state.templates.forEach(function(t, i){
-      tplTotal += Number(t.amount)||0;
+      var biw = isBiw(t);
+      tplTotal += (Number(t.amount)||0) * (biw ? 2 : 1);
       var ol = owedLeft(t, mk);
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<span class=\"prio\">#" + (i+1) + "</span>" +
         "<div class=\"row-main\"><div class=\"row-name\">" + esc(t.name) + "</div>" +
-        "<div class=\"row-meta\">Due on day " + t.dueDay + " of every month" + (ol!==null ? " · Payoff bill" : "") + "</div></div>" +
-        "<span class=\"due\">Day " + t.dueDay + "</span>" +
-        "<span class=\"wk\">" + money((Number(t.amount)||0)/4) + "/wk</span>" +
+        "<div class=\"row-meta\">" + (biw ? "Bi-weekly — due every 2 weeks from " + fmtDue(new Date(t.start + "T00:00:00")) : "Due on day " + t.dueDay + " of every month") + (ol!==null ? " · Payoff bill" : "") + "</div></div>" +
+        "<span class=\"due\">" + (biw ? "Every 2 wks" : "Day " + t.dueDay) + "</span>" +
+        "<span class=\"wk\">" + money(weeklyOfBill(t)) + "/wk</span>" +
         (ol!==null ? "<span class=\"owed\">" + money(ol) + " owed</span>" : "") +
         "<span class=\"amt\">" + money(t.amount) + "</span>" +
         "<button class=\"smallbtn\" data-action=\"move-up\" data-id=\"" + t.id + "\" aria-label=\"Move " + esc(t.name) + " up in priority\"" + (i===0?" disabled":"") + ">↑</button>" +
@@ -1115,10 +1137,10 @@
     editing = { kind: kind, x: x };
     var h = fld("Name", "eName", "text", x.name, "required autocomplete=\"off\"");
     if(kind==="account") h += fld("Balance $", "eAmt", "number", x.balance, "inputmode=\"decimal\" step=\"0.01\" required");
-    else h += fld(kind==="bill" ? "Amount per month $" : (x.freq==="week" ? "Amount per week $" : "Amount per month $"), "eAmt", "number", x.amount, "inputmode=\"decimal\" min=\"0\" step=\"0.01\" required");
+    else h += fld(kind==="bill" ? (isBiw(x) ? "Amount every 2 weeks $" : "Amount per month $") : (x.freq==="week" ? "Amount per week $" : x.freq==="biweek" ? "Amount every 2 weeks $" : "Amount per month $"), "eAmt", "number", x.amount, "inputmode=\"decimal\" min=\"0\" step=\"0.01\" required");
     if(kind==="bill"){
       var o = ""; for(var d=1; d<=31; d++) o += "<option value=\"" + d + "\"" + (d===Number(x.dueDay) ? " selected" : "") + ">" + d + "</option>";
-      h += "<label class=\"f\">Due day<select id=\"eDay\">" + o + "</select></label>";
+      h += isBiw(x) ? fld("Next due date (repeats every 2 weeks)", "eStart", "date", x.start, "required") : "<label class=\"f\">Due day<select id=\"eDay\">" + o + "</select></label>";
     }
     $("editTitle").textContent = kind==="bill" ? "Edit bill" : kind==="account" ? "Edit account" : "Edit income";
     h += "<div class=\"editbtns\"><button class=\"btn secondary\" type=\"button\" id=\"eCancel\">Cancel</button><button class=\"btn\" type=\"submit\">Save changes</button></div>";
@@ -1136,7 +1158,8 @@
     if(!name || isNaN(amt) || (k!=="account" && !(amt>0))) return;
     x.name = name;
     if(k==="account") x.balance = amt; else x.amount = amt;
-    if(k==="bill"){ var dd = parseInt($("eDay").value,10); if(dd>=1 && dd<=31) x.dueDay = dd; }
+    if(k==="bill" && $("eStart")){ var sv = $("eStart").value; if(/^\d{4}-\d{2}-\d{2}$/.test(sv)){ x.start = sv; x.dueDay = new Date(sv + "T00:00:00").getDate(); } }
+    else if(k==="bill"){ var dd = parseInt($("eDay").value,10); if(dd>=1 && dd<=31) x.dueDay = dd; }
     save(); closeEdit(); render();
   });
 

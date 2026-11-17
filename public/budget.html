@@ -12,53 +12,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f2f4f7;
-    --surface:#ffffff;
-    --surface-2:#eef1f6;
-    --ink:#101828;
-    --ink-2:#344054;
-    --muted:#667085;
-    --line:#d9dfe9;
-    --cobalt:#0b4fd1;
-    --cobalt-dark:#083a9c;
-    --cobalt-soft:#e6eefc;
-    --green:#067647;
-    --green-soft:#e6f4ea;
-    --amber:#b54708;
-    --amber-soft:#fef3e2;
-    --red:#b42318;
-    --red-soft:#fef3f2;
-    --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
-    --radius:12px;
-    --radius-sm:8px;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#0c1220;
-      --surface:#131c30;
-      --surface-2:#1a2742;
-      --ink:#f2f4f7;
-      --ink-2:#d0d5dd;
-      --muted:#98a2b3;
-      --line:#263354;
-      --cobalt:#5b8def;
-      --cobalt-dark:#8db0f5;
-      --cobalt-soft:#1c2f57;
-      --green:#32d583;
-      --green-soft:#123527;
-      --amber:#fdb022;
-      --amber-soft:#3a2a0a;
-      --red:#f97066;
-      --red-soft:#3d1a16;
-      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
-    }
+    color-scheme:dark;
+    --bg:#05070c; --surface:#0a0f1a; --surface-2:#111a2c;
+    --ink:#f2f6fc; --ink-2:#d3dced; --muted:#a3b1c9; --line:#1d2b47;
+    --cobalt:#22d3ee; --cobalt-dark:#7fe6f7; --cobalt-soft:rgba(34,211,238,.13);
+    --lime:#c6f542;
+    --green:#c6f542; --green-soft:rgba(198,245,66,.14);
+    --amber:#fdb022; --amber-soft:rgba(253,176,34,.14);
+    --red:#ff7a6e; --red-soft:rgba(255,122,110,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.45);
+    --radius:14px; --radius-sm:10px;
   }
   *{box-sizing:border-box}
   html{ -webkit-text-size-adjust:100% }
   body{
     margin:0; background:var(--bg); color:var(--ink);
     font-family:"Public Sans", system-ui, -apple-system, Segoe UI, sans-serif;
-    font-size:16px; line-height:1.5;
+    font-size:17px; line-height:1.55;
   }
   .wrap{ max-width:980px; margin:0 auto; padding:20px 16px 64px; }
   @media(min-width:720px){ .wrap{ padding:32px 24px 80px } }
@@ -294,6 +264,19 @@
   .account-signed-out .btn.secondary{background:transparent;color:#7fe6f7;border:1px solid rgba(34,211,238,.5);}
   .account-signed-out .smallbtn{background:transparent;border-color:#22314f;color:#c3cfe4;}
 
+  /* Fleezy dark look for signed-in pages */
+  .tab[aria-selected="true"]{ background:var(--lime); color:#05070c; }
+  .tab{ font-size:15px; }
+  .smallbtn.paidbtn.is-paid{ color:#05070c; }
+  .btn{ background:var(--lime) !important; color:#05070c !important; }
+  .btn.secondary{ background:transparent !important; color:var(--cobalt) !important; border:1px solid var(--cobalt) !important; }
+  input, select, textarea{ background:#0b1322; color:var(--ink); border-color:#22314f; }
+  .card-head h3, .monthbar h2{ color:var(--lime); font-size:19px; }
+  .row-name, .amt{ font-size:16px; }
+  .row-meta, .card-head p, .stat .sub{ font-size:14px; }
+  .stat label{ color:var(--cobalt); font-size:12.5px; }
+  .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible{ outline-color:var(--lime); }
+  a{ color:var(--cobalt); }
 </style>
 <script>if(new URLSearchParams(location.search).get("account")==="1") document.documentElement.classList.add("account-signed-out");</script>
 </head>

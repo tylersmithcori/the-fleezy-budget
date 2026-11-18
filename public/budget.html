@@ -1140,6 +1140,7 @@
     else h += fld(kind==="bill" ? (isBiw(x) ? "Amount every 2 weeks $" : "Amount per month $") : (x.freq==="week" ? "Amount per week $" : x.freq==="biweek" ? "Amount every 2 weeks $" : "Amount per month $"), "eAmt", "number", x.amount, "inputmode=\"decimal\" min=\"0\" step=\"0.01\" required");
     if(kind==="bill"){
       var o = ""; for(var d=1; d<=31; d++) o += "<option value=\"" + d + "\"" + (d===Number(x.dueDay) ? " selected" : "") + ">" + d + "</option>";
+      h += fld("Total still owed $ — payoff bills only (leave blank for regular bills)", "eOwed", "number", x.owed, "inputmode=\"decimal\" min=\"0\" step=\"0.01\"");
       h += isBiw(x) ? fld("Next due date (repeats every 2 weeks)", "eStart", "date", x.start, "required") : "<label class=\"f\">Due day<select id=\"eDay\">" + o + "</select></label>";
     }
     $("editTitle").textContent = kind==="bill" ? "Edit bill" : kind==="account" ? "Edit account" : "Edit income";
@@ -1158,6 +1159,7 @@
     if(!name || isNaN(amt) || (k!=="account" && !(amt>0))) return;
     x.name = name;
     if(k==="account") x.balance = amt; else x.amount = amt;
+    if(k==="bill"){ var ow = parseFloat($("eOwed").value); if(ow>0) x.owed = ow; else delete x.owed; }
     if(k==="bill" && $("eStart")){ var sv = $("eStart").value; if(/^\d{4}-\d{2}-\d{2}$/.test(sv)){ x.start = sv; x.dueDay = new Date(sv + "T00:00:00").getDate(); } }
     else if(k==="bill"){ var dd = parseInt($("eDay").value,10); if(dd>=1 && dd<=31) x.dueDay = dd; }
     save(); closeEdit(); render();

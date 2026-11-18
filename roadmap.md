@@ -27,3 +27,5 @@
 - [x] Park EBT live interface without deleting saved data
 - [x] Fix receipt photo picker in Spending not in the budget: opens picker, shows name + preview, stays with purchase
 - [x] Remove Plus and Premium plans from the app; only the Free plan shows (details kept in notes)
+- [x] Bi-weekly (every 2 weeks) option for pay and bills
+- [x] Fix: bill total amount (total still owed) editable and saved

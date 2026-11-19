@@ -426,8 +426,10 @@
             <label class="f full">Name<input id="rcName" type="text" placeholder="e.g. Paycheck" autocomplete="off" required></label>
             <label class="f">Date<input id="rcDate" type="date" required></label>
             <label class="f">Amount $<input id="rcAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+            <label class="f">Deposit to<select id="rcAccount"></select></label>
           </div>
           <button class="btn" type="submit">Add income received</button>
+          <p class="hint" id="rcAccountHint" hidden>No checking account yet — you can add income without depositing it to an account.</p>
           <p class="hint">Each check is counted on its own as it comes in — never a whole month at once.</p>
         </form>
       </div>
@@ -511,6 +513,7 @@
           </label>
           <label class="f" id="tplStartWrap" hidden>Next due date<input id="tplStart" type="date"></label>
           <label class="f">Amount $<input id="tplAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required></label>
+          <label class="f">Pay from<select id="tplAccount"></select></label>
         </div>
         <p class="hint" id="tplWkHint">Type an amount to see what to set aside each week.</p>
         <label class="f">Total still owed $ — payoff bills only (credit card, car note, loan). Leave blank for regular bills.<input id="tplOwed" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></label>
@@ -595,7 +598,7 @@
   "use strict";
   var KEY = "tsc-budget-v1";
   var accountMode = new URLSearchParams(window.location.search).get("account") === "1";
-  var state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notifyOn: false, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
+  var state = { incomes: [], templates: [], expenses: [], paid: {}, paidTransactions: {}, saveMode: "pct", saveVal: 10, showWeekly: true, notifyOn: false, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
   var viewDate = new Date(); viewDate.setDate(1);
 
   function load(){
@@ -607,6 +610,7 @@
         state.templates = Array.isArray(p.templates) ? p.templates : [];
         state.expenses = Array.isArray(p.expenses) ? p.expenses : [];
         state.paid = p.paid && typeof p.paid === "object" ? p.paid : {};
+        state.paidTransactions = p.paidTransactions && typeof p.paidTransactions === "object" ? p.paidTransactions : {};
         if(p.saveMode==="amt" || p.saveMode==="pct") state.saveMode = p.saveMode;
         if(typeof p.saveVal === "number") state.saveVal = p.saveVal;
         else if(typeof p.savePct === "number") state.saveVal = p.savePct;
@@ -625,7 +629,35 @@
     try{ localStorage.setItem(KEY, JSON.stringify(state)); return true; }catch(e){ return false; }
   }
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-  function money(n){ var v = Number(n)||0; return "$" + v.toLocaleString("en-US",{minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits:2}); }
+  function cents(n){ return Math.round((Number(n)||0) * 100) / 100; }
+  function money(n){ var v = cents(n); return "$" + v.toLocaleString("en-US",{minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits:2}); }
+  function checkingAccount(id){ return state.accounts.find(function(a){ return a.id===id && a.kind==="checking"; }); }
+  function adjustChecking(id, amount){ var a = checkingAccount(id); if(a) a.balance = cents(cents(a.balance) + cents(amount)); }
+  function accountLabel(id, name){ var a = checkingAccount(id); return a ? a.name : name || "Account removed"; }
+  function checkingOptions(id){
+    return "<option value=\"\">No account linked</option>" + state.accounts.filter(function(a){ return a.kind==="checking"; }).map(function(a){
+      return "<option value=\"" + esc(a.id) + "\"" + (a.id===id ? " selected" : "") + ">" + esc(a.name) + "</option>";
+    }).join("");
+  }
+  function renderCheckingChoices(){
+    ["rcAccount", "tplAccount"].forEach(function(id){ var el = $(id), selected = el.value; el.innerHTML = checkingOptions(selected); });
+    $("rcAccountHint").hidden = state.accounts.some(function(a){ return a.kind==="checking"; });
+  }
+  function setBillPaid(id, key, paid){
+    if(!!state.paid[key]===paid) return;
+    var t = state.templates.find(function(x){ return x.id===id; }); if(!t) return;
+    if(!state.paidTransactions) state.paidTransactions = {};
+    if(paid){
+      var a = checkingAccount(t.accountId), amount = cents(t.amount);
+      state.paidTransactions[key] = { amount: amount, accountId: a ? a.id : "" };
+      if(a) adjustChecking(a.id, -amount);
+      state.paid[key] = true;
+    } else {
+      var transaction = state.paidTransactions[key];
+      if(transaction) adjustChecking(transaction.accountId, transaction.amount);
+      delete state.paidTransactions[key]; delete state.paid[key];
+    }
+  }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function monthKey(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
   function monthName(d){ return d.toLocaleDateString("en-US",{month:"long", year:"numeric"}); }
@@ -683,7 +715,10 @@
     e.preventDefault();
     var name = $("rcName").value.trim(), amt = parseFloat($("rcAmt").value), date = $("rcDate").value;
     if(!name || !(amt>0) || !date) return;
-    state.received.push({ id: uid(), name: name, amount: amt, date: date });
+    amt = cents(amt);
+    var account = checkingAccount($("rcAccount").value);
+    state.received.push({ id: uid(), name: name, amount: amt, date: date, accountId: account ? account.id : "", accountName: account ? account.name : "" });
+    if(account) adjustChecking(account.id, amt);
     $("rcName").value=""; $("rcAmt").value=""; $("rcDate").value = isoDay(new Date());
     save(); render();
   });
@@ -703,9 +738,10 @@
     var owed = parseFloat($("tplOwed").value), biw = $("tplFreq").value==="biweek", st = $("tplStart").value;
     if(biw){ if(!/^\d{4}-\d{2}-\d{2}$/.test(st)) { $("tplStart").focus(); return; } day = new Date(st + "T00:00:00").getDate(); }
     if(!name || !(amt>0) || !(day>=1 && day<=31)) return;
-    var t = { id: uid(), name: name, amount: amt, dueDay: day };
+    var account = checkingAccount($("tplAccount").value);
+    var t = { id: uid(), name: name, amount: cents(amt), dueDay: day, accountId: account ? account.id : "", accountName: account ? account.name : "" };
     if(biw){ t.freq = "biweek"; t.start = st; }
-    if(owed>0) t.owed = owed;
+    if(owed>0) t.owed = cents(owed);
     state.templates.push(t);
     $("tplName").value=""; $("tplAmt").value=""; $("tplOwed").value=""; $("tplStart").value=""; updateTplWk();
     save(); render();
@@ -766,6 +802,8 @@
       if(state.incomes.length && !state.incomes.some(function(x){return x.primary;})) state.incomes[0].primary = true;
     }
     if(action==="del-recv"){
+      var received = state.received.find(function(x){ return x.id===id; });
+      if(received) adjustChecking(received.accountId, -cents(received.amount));
       state.received = state.received.filter(function(x){ return x.id!==id; });
     }
     if(action==="make-primary"){
@@ -778,7 +816,7 @@
     }
     if(action==="toggle-paid" && b.tagName!=="INPUT"){
       var k = monthKey(viewDate) + ":" + id;
-      state.paid[k] = !state.paid[k]; if(!state.paid[k]) delete state.paid[k];
+      setBillPaid(id, b.getAttribute("data-key") || k, !state.paid[b.getAttribute("data-key") || k]);
     }
     if(action==="del-expense"){
       state.expenses = state.expenses.filter(function(x){ return x.id!==id; });
@@ -802,7 +840,7 @@
   document.addEventListener("change", function(e){
     var b = e.target; if(!b.matches || !b.matches("input[data-action=toggle-paid]")) return;
     var k = b.getAttribute("data-key") || (monthKey(viewDate) + ":" + b.getAttribute("data-id"));
-    if(b.checked) state.paid[k] = true; else delete state.paid[k];
+    setBillPaid(b.getAttribute("data-id"), k, b.checked);
     save(); render();
   });
   function isoDay(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -830,9 +868,9 @@
   /* Payoff bills: total owed minus one payment for every month checked paid, up to the month shown */
   function owedLeft(t, mk){
     if(!(Number(t.owed)>0)) return null;
-    var n = 0;
-    Object.keys(state.paid).forEach(function(k){ var i = k.indexOf(":"); if(k.slice(i+1).split("~")[0]===t.id && k.slice(0,i)<=mk) n++; });
-    return Math.max(0, Number(t.owed) - n * (Number(t.amount)||0));
+    var paidAmount = 0;
+    Object.keys(state.paid).forEach(function(k){ var i = k.indexOf(":"); if(state.paid[k] && k.slice(i+1).split("~")[0]===t.id && k.slice(0,i)<=mk){ var transaction = state.paidTransactions && state.paidTransactions[k]; paidAmount = cents(paidAmount + (transaction ? transaction.amount : Number(t.amount)||0)); } });
+    return cents(Math.max(0, Number(t.owed) - paidAmount));
   }
   function renderSave(totalIncome, totalBills){
     var box = $("saveBox");
@@ -950,7 +988,7 @@
       var dd = new Date(x.date + "T00:00:00");
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<div class=\"row-main\"><div class=\"row-name\">" + esc(x.name) + "</div>" +
-        "<div class=\"row-meta\">Received " + dd.toLocaleDateString(undefined,{month:"short",day:"numeric"}) + "</div></div>" +
+        "<div class=\"row-meta\">Received " + dd.toLocaleDateString(undefined,{month:"short",day:"numeric"}) + (x.accountId ? " · Deposited to " + esc(accountLabel(x.accountId, x.accountName)) : " · No account linked") + "</div></div>" +
         "<span class=\"amt\">" + money(x.amount) + "</span>" +
         "<button class=\"smallbtn danger\" data-action=\"del-recv\" data-id=\"" + x.id + "\" aria-label=\"Remove " + esc(x.name) + "\">Remove</button>";
       recvList.appendChild(li);
@@ -986,7 +1024,7 @@
       var li = document.createElement("li"); li.className = "row";
       li.innerHTML = "<input type=\"checkbox\" style=\"width:22px;height:22px;flex:0 0 auto;cursor:pointer\" data-action=\"toggle-paid\" data-id=\"" + t.id + "\" data-key=\"" + pk + "\"" + (isPaid ? " checked" : "") + " aria-label=\"" + esc(t.name) + (biw ? " paid for " + fmtDue(due) : " paid this month") + "\">" +
         "<div class=\"row-main\"><div class=\"row-name\"" + (isPaid ? " style=\"text-decoration:line-through;opacity:.65\"" : "") + ">" + esc(t.name) + "</div>" +
-        "<div class=\"row-meta\">" + (isPaid ? (biw ? "Paid" : "Paid for this month") : "Not paid yet") + " · due " + fmtDue(due) + (biw ? " · every 2 weeks" : "") + (ol!==null ? " · Payoff bill" : "") + "</div></div>" +
+        "<div class=\"row-meta\">" + (isPaid ? (biw ? "Paid" : "Paid for this month") : "Not paid yet") + " · due " + fmtDue(due) + (biw ? " · every 2 weeks" : "") + (ol!==null ? " · Payoff bill" : "") + (t.accountId ? " · Pay from " + esc(accountLabel(t.accountId, t.accountName)) : "") + "</div></div>" +
         "<span class=\"" + cls + "\">" + label + "</span>" +
         "<span class=\"wk\">" + money(weeklyOfBill(t)) + "/wk</span>" +
         (ol!==null ? "<span class=\"owed\">" + money(ol) + " owed</span>" : "") +
@@ -1096,6 +1134,7 @@
     $("billsTotalLine").textContent = state.templates.length ? state.templates.length + (state.templates.length===1 ? " bill" : " bills") + " · " + money(tplTotal) + " total per month — save " + money(tplTotal/4) + " a week — repeats automatically." : "No bills yet.";
 
     renderAccounts();
+    renderCheckingChoices();
   }
 
   /* ===== Accounts — each with its own balance, entered by hand. ===== */
@@ -1121,7 +1160,7 @@
     e.preventDefault();
     var name = $("acctName").value.trim(), bal = parseFloat($("acctBal").value);
     if(!name || isNaN(bal)) return;
-    state.accounts.push({ id: uid(), name: name, kind: kindOf($("acctKind").value), balance: bal });
+    state.accounts.push({ id: uid(), name: name, kind: kindOf($("acctKind").value), balance: cents(bal) });
     $("acctName").value = ""; $("acctBal").value = "";
     save(); render();
   });
@@ -1141,6 +1180,7 @@
     if(kind==="bill"){
       var o = ""; for(var d=1; d<=31; d++) o += "<option value=\"" + d + "\"" + (d===Number(x.dueDay) ? " selected" : "") + ">" + d + "</option>";
       h += fld("Total still owed $ — payoff bills only (leave blank for regular bills)", "eOwed", "number", x.owed, "inputmode=\"decimal\" min=\"0\" step=\"0.01\"");
+      h += "<label class=\"f\">Pay from<select id=\"eAccount\">" + checkingOptions(x.accountId) + "</select></label>";
       h += isBiw(x) ? fld("Next due date (repeats every 2 weeks)", "eStart", "date", x.start, "required") : "<label class=\"f\">Due day<select id=\"eDay\">" + o + "</select></label>";
     }
     $("editTitle").textContent = kind==="bill" ? "Edit bill" : kind==="account" ? "Edit account" : "Edit income";
@@ -1158,8 +1198,11 @@
     var x = editing.x, k = editing.kind, name = $("eName").value.trim(), amt = parseFloat($("eAmt").value);
     if(!name || isNaN(amt) || (k!=="account" && !(amt>0))) return;
     x.name = name;
-    if(k==="account") x.balance = amt; else x.amount = amt;
-    if(k==="bill"){ var ow = parseFloat($("eOwed").value); if(ow>0) x.owed = ow; else delete x.owed; }
+    if(k==="account") x.balance = cents(amt); else x.amount = cents(amt);
+    if(k==="bill"){
+      var ow = parseFloat($("eOwed").value); if(ow>0) x.owed = cents(ow); else delete x.owed;
+      var account = checkingAccount($("eAccount").value); x.accountId = account ? account.id : ""; x.accountName = account ? account.name : "";
+    }
     if(k==="bill" && $("eStart")){ var sv = $("eStart").value; if(/^\d{4}-\d{2}-\d{2}$/.test(sv)){ x.start = sv; x.dueDay = new Date(sv + "T00:00:00").getDate(); } }
     else if(k==="bill"){ var dd = parseInt($("eDay").value,10); if(dd>=1 && dd<=31) x.dueDay = dd; }
     save(); closeEdit(); render();
@@ -1173,7 +1216,7 @@
       legacy: function(){ try{ var raw=localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }
     };
     $("storageNotice").textContent = "Signed-in entries are saved privately to your account. Personal and Business stay separate. General education only — not personal financial advice.";
-    state = { incomes: [], templates: [], expenses: [], paid: {}, saveMode: "pct", saveVal: 0, showWeekly: false, notifyOn: false, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
+    state = { incomes: [], templates: [], expenses: [], paid: {}, paidTransactions: {}, saveMode: "pct", saveVal: 0, showWeekly: false, notifyOn: false, notified: {}, ebtAmt: {}, ebtExp: [], accounts: [], received: [] };
     window.budgetAccount.lock(true);
   }
   load(); render();

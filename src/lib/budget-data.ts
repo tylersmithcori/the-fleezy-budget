@@ -7,6 +7,7 @@ export const budgetSchema = z.object({
   expenses: z.array(entry).default([]), accounts: z.array(entry).default([]),
   received: z.array(entry).default([]), ebtExp: z.array(entry).default([]),
   paid: z.record(z.boolean()).default({}), ebtAmt: z.record(z.number().finite().nonnegative()).default({}),
+  paidTransactions: z.record(z.object({ amount: z.number().finite().nonnegative(), accountId: z.string() })).default({}),
   saveMode: z.enum(['pct', 'amt']).default('pct'), saveVal: z.number().finite().nonnegative().default(0),
   showWeekly: z.boolean().default(false), notifyOn: z.boolean().default(false),
   notified: z.record(z.boolean()).default({}),
@@ -31,7 +32,7 @@ export function toRows(state: Budget): Rows {
   state.received.forEach(x => add(x.checkin ? 'weekly_checkins' : 'income', x.id, { ...x, received: true }));
   state.ebtExp.forEach(x => add('ebt_entries', x.id, { ...x, kind: 'purchase' }));
   Object.entries(state.ebtAmt).forEach(([month, amount]) => add('ebt_entries', `benefit:${month}`, { kind: 'benefit', month, amount }));
-  Object.entries(state.paid).filter(([, paid]) => paid).forEach(([id]) => add('bill_payments', id, { paid: true }));
+  Object.entries(state.paid).filter(([, paid]) => paid).forEach(([id]) => add('bill_payments', id, { paid: true, transaction: state.paidTransactions[id] }));
   add('savings', 'settings', { saveMode: state.saveMode, saveVal: state.saveVal, showWeekly: state.showWeekly, notifyOn: state.notifyOn, notified: state.notified });
   return rows;
 }
@@ -46,5 +47,6 @@ export function fromRows(rows: Rows): Budget {
     accounts: ordered(rows.accounts), ebtExp: ordered(rows.ebt_entries.filter(x => x.data['kind'] === 'purchase')),
     ebtAmt: Object.fromEntries(rows.ebt_entries.filter(x => x.data['kind'] === 'benefit').map(x => [x.data['month'], x.data['amount']])),
     paid: Object.fromEntries(rows.bill_payments.map(x => [x.id, true])),
+    paidTransactions: Object.fromEntries(rows.bill_payments.filter(x => x.data['transaction']).map(x => [x.id, x.data['transaction']])),
   });
 }
